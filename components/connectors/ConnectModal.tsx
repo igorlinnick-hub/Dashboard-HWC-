@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import type { ConnectorDefinition } from '@/types';
 import { Button } from '@/components/ui/Button';
 
@@ -50,13 +49,7 @@ export function ConnectModal({ connector, clientId, onClose, onSuccess }: Connec
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 24 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-surface-border bg-surface-card shadow-2xl"
-      >
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-surface-border bg-surface-card shadow-2xl animate-slide-up">
         <div className="h-0.5 bg-gradient-to-r from-accent via-accent-hover to-accent" />
         <div className="p-6">
           <div className="mb-5 flex items-center justify-between">
@@ -102,7 +95,7 @@ export function ConnectModal({ connector, clientId, onClose, onSuccess }: Connec
             </div>
           </form>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

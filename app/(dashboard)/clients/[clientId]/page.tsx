@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { fetcher } from '@/lib/fetcher';
 import { getConnectorIcon } from '@/lib/connectors/icons';
@@ -21,16 +20,6 @@ const categoryLabels: Record<ConnectorCategory, string> = {
   ads: 'Advertising',
   reviews: 'Reviews',
   analytics: 'Analytics',
-};
-
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.05 } },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
 };
 
 export default function ClientOverviewPage() {
@@ -95,16 +84,11 @@ export default function ClientOverviewPage() {
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
               {categoryLabels[cat]}
             </h3>
-            <motion.div
-              variants={stagger}
-              initial="hidden"
-              animate="show"
-              className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
-            >
-              {group.map((c) => {
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {group.map((c, i) => {
                 const Icon = getConnectorIcon(c.definition.slug);
                 return (
-                  <motion.div key={c.definition.slug} variants={fadeUp}>
+                  <div key={c.definition.slug} className="animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
                     <Card className={`${c.isConnected ? 'border-accent/20' : 'hover:border-surface-subtle'}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -146,10 +130,10 @@ export default function ClientOverviewPage() {
                         )}
                       </div>
                     </Card>
-                  </motion.div>
+                  </div>
                 );
               })}
-            </motion.div>
+            </div>
           </div>
         );
       })}

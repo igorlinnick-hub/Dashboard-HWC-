@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import { fetcher } from '@/lib/fetcher';
 import { PageWrapper } from '@/components/layout/PageWrapper';
@@ -12,16 +11,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { CardSkeleton } from '@/components/ui/Skeleton';
 import type { Client } from '@/types';
-
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06 } },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' as const } },
-};
 
 export default function AgencyOverviewPage() {
   const { data, isLoading, mutate } = useSWR<{ data: Client[] }>('/api/clients', fetcher);
@@ -52,18 +41,13 @@ export default function AgencyOverviewPage() {
           </div>
         </Card>
       ) : (
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
-        >
-          {clients.map((client) => (
-            <motion.div key={client.id} variants={fadeUp}>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {clients.map((client, i) => (
+            <div key={client.id} className="animate-slide-up" style={{ animationDelay: `${i * 60}ms` }}>
               <ClientCard client={client} />
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       )}
 
       {showModal && (
@@ -172,13 +156,7 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-surface-border bg-surface-card shadow-2xl"
-      >
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-surface-border bg-surface-card shadow-2xl animate-slide-up">
         <div className="h-0.5 bg-gradient-to-r from-accent via-accent-hover to-accent" />
         <div className="p-6">
           <div className="mb-4 flex items-center justify-between">
@@ -195,38 +173,20 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-text-secondary">Clinic Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                className={inputClass}
-                placeholder="Aloha Spa & Recovery"
-                required
-              />
+              <input type="text" value={name} onChange={(e) => handleNameChange(e.target.value)} className={inputClass} placeholder="Aloha Spa & Recovery" required />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-text-secondary">Slug</label>
-              <input
-                type="text"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                className={`${inputClass} bg-surface-card`}
-                placeholder="aloha-spa-recovery"
-                required
-              />
+              <input type="text" value={slug} onChange={(e) => setSlug(e.target.value)} className={`${inputClass} bg-surface-card`} placeholder="aloha-spa-recovery" required />
               <p className="mt-1 text-xs text-text-muted">Auto-generated from name. Edit if needed.</p>
             </div>
             <div className="flex gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading} className="flex-1">
-                {loading ? 'Creating...' : 'Create Client'}
-              </Button>
+              <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+              <Button type="submit" disabled={loading} className="flex-1">{loading ? 'Creating...' : 'Create Client'}</Button>
             </div>
           </form>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
