@@ -51,7 +51,7 @@ const stagger = {
 
 const fadeUp = {
   hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
 };
 
 export default function ConnectorDetailPage() {
@@ -121,7 +121,7 @@ export default function ConnectorDetailPage() {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2, ease: 'easeOut' }}
+        transition={{ duration: 0.4, delay: 0.2, ease: 'easeOut' as const }}
       >
         {chartData && chartData.length > 0 && cfg ? (
           <LineChartWidget
