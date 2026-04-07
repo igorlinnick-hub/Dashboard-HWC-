@@ -1,7 +1,6 @@
 'use client';
 
 import type { ConnectorStatus } from '@/types';
-import { Badge } from '@/components/ui/Badge';
 
 interface MetricCardProps {
   title: string;
@@ -10,18 +9,15 @@ interface MetricCardProps {
   status?: ConnectorStatus;
 }
 
-export function MetricCard({ title, value, change, status }: MetricCardProps) {
+export function MetricCard({ title, value, change }: MetricCardProps) {
   const isPositive = change !== undefined && change >= 0;
 
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{title}</p>
-        {status && <Badge status={status} />}
-      </div>
-      <p className="mt-1 text-2xl font-bold">{value}</p>
+    <div className="rounded-xl border border-surface-border bg-surface-card p-5 transition-all duration-200 hover:border-surface-subtle">
+      <p className="text-sm font-medium text-text-muted">{title}</p>
+      <p className="mt-2 text-3xl font-bold text-text-primary">{value}</p>
       {change !== undefined && (
-        <p className={`mt-1 text-sm ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+        <p className={`mt-1 text-sm font-medium ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
           {isPositive ? '+' : ''}{change.toFixed(1)}%
         </p>
       )}

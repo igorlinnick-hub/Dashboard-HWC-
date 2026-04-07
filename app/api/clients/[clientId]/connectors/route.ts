@@ -3,6 +3,8 @@ import { CONNECTORS } from '@/lib/connectors/registry';
 import { createServerClient } from '@/lib/supabase';
 import type { ClientConnector } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 interface RouteParams {
   params: { clientId: string };
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
+import { ChevronDown } from 'lucide-react';
 import { fetcher } from '@/lib/fetcher';
 import type { Client } from '@/types';
 
@@ -32,20 +33,25 @@ export function ClientSwitcher({ clientId, onSelect }: ClientSwitcherProps) {
   const clients = data?.data ?? [];
 
   return (
-    <div className="px-3 py-2">
-      <label className="mb-1 block text-xs font-medium text-gray-500">Client</label>
-      <select
-        value={clientId ?? ''}
-        onChange={(e) => onSelect(e.target.value)}
-        className="w-full rounded-md border bg-white px-2 py-1.5 text-sm"
-      >
-        <option value="">All Clients</option>
-        {clients.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-      </select>
+    <div>
+      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+        Client
+      </label>
+      <div className="relative">
+        <select
+          value={clientId ?? ''}
+          onChange={(e) => onSelect(e.target.value)}
+          className="w-full appearance-none rounded-lg border border-surface-border bg-surface-card px-3 py-2 pr-8 text-sm font-medium text-text-primary transition-all duration-200 hover:border-surface-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+        >
+          <option value="">All Clients</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+      </div>
     </div>
   );
 }

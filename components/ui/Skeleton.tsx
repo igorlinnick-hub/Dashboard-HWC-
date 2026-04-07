@@ -2,15 +2,22 @@
 
 interface SkeletonProps {
   className?: string;
-  width?: string;
-  height?: string;
 }
 
-export function Skeleton({ className = '', width, height }: SkeletonProps) {
+export function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse rounded bg-gray-200 ${className}`}
-      style={{ width, height }}
+      className={`rounded-lg bg-gradient-to-r from-surface-subtle via-surface-border to-surface-subtle bg-[length:200%_100%] animate-shimmer ${className}`}
     />
+  );
+}
+
+export function CardSkeleton() {
+  return (
+    <div className="rounded-xl border border-surface-border bg-surface-card p-5">
+      <Skeleton className="mb-3 h-4 w-24" />
+      <Skeleton className="mb-2 h-8 w-32" />
+      <Skeleton className="h-3 w-16" />
+    </div>
   );
 }

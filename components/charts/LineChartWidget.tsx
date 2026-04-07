@@ -24,24 +24,50 @@ export function LineChartWidget({
   xKey,
   yKey,
   title,
-  color = '#3b82f6',
+  color = '#F97316',
   height = 300,
 }: LineChartWidgetProps) {
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm">
-      {title && <h4 className="mb-4 text-sm font-medium text-gray-600">{title}</h4>}
+    <div className="rounded-xl border border-surface-border bg-surface-card p-5">
+      {title && <h4 className="mb-4 text-sm font-medium text-text-secondary">{title}</h4>}
       {data.length === 0 ? (
         <div className="flex items-center justify-center" style={{ height }}>
-          <p className="text-gray-400">No data available</p>
+          <p className="text-text-muted">No data available</p>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={height}>
           <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={xKey} />
-            <YAxis />
-            <Tooltip />
-            <Line type="monotone" dataKey={yKey} stroke={color} />
+            <CartesianGrid stroke="#1A1A1A" strokeDasharray="none" vertical={false} />
+            <XAxis
+              dataKey={xKey}
+              stroke="#52525B"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              stroke="#52525B"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#111111',
+                border: '1px solid #1A1A1A',
+                borderRadius: '8px',
+                color: '#FAFAFA',
+                fontSize: '13px',
+              }}
+            />
+            <Line
+              type="monotone"
+              dataKey={yKey}
+              stroke={color}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4, fill: color, stroke: '#111111', strokeWidth: 2 }}
+            />
           </LineChart>
         </ResponsiveContainer>
       )}

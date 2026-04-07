@@ -10,9 +10,9 @@ interface PageWrapperProps {
 
 export function PageWrapper({ title, children }: PageWrapperProps) {
   return (
-    <div className="flex-1">
+    <div className="flex-1 bg-surface">
       <Header title={title} />
-      <main className="p-6">{children}</main>
+      <main className="animate-fade-in p-6">{children}</main>
     </div>
   );
 }

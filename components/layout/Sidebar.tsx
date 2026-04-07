@@ -2,88 +2,103 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Settings,
+  ClipboardList,
+  Landmark,
+  CreditCard,
+  SquareIcon,
+  Megaphone,
+  Star,
+  Music,
+  BarChart3,
+  type LucideIcon,
+} from 'lucide-react';
 import { ClientSwitcher, useSelectedClient } from './ClientSwitcher';
 
-const staticLinks = [
-  { label: 'Overview', href: '/' },
-  { label: 'Settings', href: '/settings/connections' },
-];
-
-const connectorLinks = [
-  { label: 'Bank', slug: 'bank' },
-  { label: 'Stripe', slug: 'stripe' },
-  { label: 'Square', slug: 'square' },
-  { label: 'Meta Ads', slug: 'meta' },
-  { label: 'Yelp', slug: 'yelp' },
-  { label: 'TikTok', slug: 'tiktok' },
-  { label: 'Google Analytics', slug: 'google-analytics' },
+const connectorLinks: { label: string; slug: string; icon: LucideIcon }[] = [
+  { label: 'Bank', slug: 'bank', icon: Landmark },
+  { label: 'Stripe', slug: 'stripe', icon: CreditCard },
+  { label: 'Square', slug: 'square', icon: SquareIcon },
+  { label: 'Meta Ads', slug: 'meta', icon: Megaphone },
+  { label: 'Yelp', slug: 'yelp', icon: Star },
+  { label: 'TikTok', slug: 'tiktok', icon: Music },
+  { label: 'Google Analytics', slug: 'google-analytics', icon: BarChart3 },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { clientId, selectClient } = useSelectedClient();
 
-  function connectorHref(slug: string) {
-    if (!clientId) return '#';
-    return `/clients/${clientId}/${slug}`;
+  function linkClass(href: string) {
+    const active = pathname === href;
+    return `group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+      active
+        ? 'bg-accent-muted text-accent'
+        : 'text-text-secondary hover:bg-surface-subtle hover:text-text-primary'
+    }`;
   }
 
-  function isActive(href: string) {
-    return pathname === href;
+  function iconClass(href: string) {
+    const active = pathname === href;
+    return active ? 'text-accent' : 'text-text-muted group-hover:text-text-secondary';
   }
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r bg-gray-50">
-      <div className="p-4 pb-2">
-        <h1 className="text-xl font-bold">Agency Dashboard</h1>
-        <p className="text-sm text-gray-500">Multi-Client BI</p>
+    <aside className="flex h-screen w-60 flex-col border-r border-surface-border bg-surface">
+      {/* Logo */}
+      <div className="border-b border-surface-border px-4 py-5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent shadow-sm">
+            <LayoutDashboard className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-text-primary">Wellness BI</p>
+            <p className="text-xs text-text-muted">Agency Dashboard</p>
+          </div>
+        </div>
       </div>
 
-      <ClientSwitcher clientId={clientId} onSelect={selectClient} />
+      {/* Client switcher */}
+      <div className="border-b border-surface-border px-3 py-3">
+        <ClientSwitcher clientId={clientId} onSelect={selectClient} />
+      </div>
 
-      <nav className="flex-1 space-y-1 overflow-auto p-3">
-        {staticLinks.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`block rounded-md px-3 py-2 text-sm font-medium ${
-              isActive(item.href)
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            {item.label}
+      {/* Navigation */}
+      <nav className="flex-1 overflow-auto px-3 py-3">
+        <div className="space-y-0.5">
+          <Link href="/" className={linkClass('/')}>
+            <LayoutDashboard className={`h-4 w-4 ${iconClass('/')}`} />
+            Overview
           </Link>
-        ))}
+          <Link href="/settings/connections" className={linkClass('/settings/connections')}>
+            <Settings className={`h-4 w-4 ${iconClass('/settings/connections')}`} />
+            Settings
+          </Link>
+        </div>
 
         {clientId && (
           <>
-            <div className="pb-1 pt-4 text-xs font-semibold uppercase text-gray-400">
+            <div className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
               Connectors
             </div>
-            <Link
-              href={`/clients/${clientId}`}
-              className={`block rounded-md px-3 py-2 text-sm font-medium ${
-                pathname === `/clients/${clientId}`
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              Client Overview
-            </Link>
-            {connectorLinks.map((c) => (
-              <Link
-                key={c.slug}
-                href={connectorHref(c.slug)}
-                className={`block rounded-md px-3 py-2 text-sm font-medium ${
-                  isActive(connectorHref(c.slug))
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                {c.label}
+            <div className="space-y-0.5">
+              <Link href={`/clients/${clientId}`} className={linkClass(`/clients/${clientId}`)}>
+                <ClipboardList className={`h-4 w-4 ${iconClass(`/clients/${clientId}`)}`} />
+                Client Overview
               </Link>
-            ))}
+              {connectorLinks.map((c) => {
+                const href = `/clients/${clientId}/${c.slug}`;
+                const Icon = c.icon;
+                return (
+                  <Link key={c.slug} href={href} className={linkClass(href)}>
+                    <Icon className={`h-4 w-4 ${iconClass(href)}`} />
+                    {c.label}
+                  </Link>
+                );
+              })}
+            </div>
           </>
         )}
       </nav>

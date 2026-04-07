@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { Skeleton } from '@/components/ui/Skeleton';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [checking, setChecking] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -16,21 +16,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!session) {
         router.push('/login');
       } else {
-        setLoading(false);
+        setAuthenticated(true);
       }
+      setChecking(false);
     });
   }, [router]);
 
-  if (loading) {
+  if (checking) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Skeleton className="h-8 w-48" />
+      <div className="flex h-screen items-center justify-center bg-surface">
+        <div className="text-center">
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <p className="text-sm text-text-muted">Loading...</p>
+        </div>
       </div>
     );
   }
 
+  if (!authenticated) return null;
+
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-surface">
       <Sidebar />
       <div className="flex-1 overflow-auto">{children}</div>
     </div>
