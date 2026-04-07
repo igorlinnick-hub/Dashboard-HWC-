@@ -35,34 +35,51 @@ export default function LoginPage() {
     router.push('/');
   }
 
+  const inputClass =
+    'block w-full rounded-lg border border-surface-border bg-surface px-3.5 py-2.5 text-sm text-text-primary placeholder-text-muted transition-all duration-200';
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface">
+    <div className="relative flex min-h-screen items-center justify-center bg-surface overflow-hidden">
+      {/* Radial glow behind card */}
+      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-accent/[0.04] blur-[120px]" />
+
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="w-full max-w-sm px-4"
+        transition={{ duration: 0.6, ease: 'easeOut' as const }}
+        className="relative w-full max-w-[400px] px-4"
       >
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent glow-orange">
+        {/* Branding */}
+        <div className="mb-10 text-center">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent glow-orange"
+          >
             <LayoutDashboard className="h-7 w-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-text-primary">Welcome back</h1>
-          <p className="mt-1 text-sm text-text-muted">Sign in to your agency dashboard</p>
+          </motion.div>
+          <h1 className="text-2xl font-bold tracking-tight text-text-primary">Welcome back</h1>
+          <p className="mt-1.5 text-sm text-text-muted">Sign in to your agency dashboard</p>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-card">
-          <div className="h-0.5 bg-gradient-to-r from-accent via-accent-hover to-accent" />
+        {/* Card */}
+        <div className="overflow-hidden rounded-2xl border border-surface-border bg-surface-card shadow-2xl shadow-black/40">
+          <div className="h-px bg-gradient-to-r from-transparent via-accent to-transparent" />
           <div className="p-6">
             {error && (
-              <div className="mb-4 rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="mb-4 rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400"
+              >
                 {error}
-              </div>
+              </motion.div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-5">
               <div>
-                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-text-secondary">
+                <label htmlFor="email" className="mb-1.5 block text-[13px] font-medium text-text-secondary">
                   Email
                 </label>
                 <input
@@ -70,13 +87,13 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder-text-muted transition-all duration-200"
+                  className={inputClass}
                   placeholder="you@company.com"
                   required
                 />
               </div>
               <div>
-                <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-text-secondary">
+                <label htmlFor="password" className="mb-1.5 block text-[13px] font-medium text-text-secondary">
                   Password
                 </label>
                 <input
@@ -84,17 +101,35 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder-text-muted transition-all duration-200"
+                  className={inputClass}
                   placeholder="Enter your password"
                   required
                 />
               </div>
-              <Button type="submit" className="w-full glow-orange-sm" size="lg" disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign In'}
+              <Button
+                type="submit"
+                className="w-full glow-orange-sm hover:glow-orange transition-shadow duration-300"
+                size="lg"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Signing in...
+                  </span>
+                ) : (
+                  'Sign In'
+                )}
               </Button>
             </form>
 
-            <p className="mt-5 text-center text-sm text-text-muted">
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-surface-border" />
+              <span className="text-xs text-text-muted">or</span>
+              <div className="h-px flex-1 bg-surface-border" />
+            </div>
+
+            <p className="text-center text-sm text-text-muted">
               Don&apos;t have an account?{' '}
               <Link href="/signup" className="font-medium text-accent hover:text-accent-hover transition-colors">
                 Sign up
@@ -102,6 +137,10 @@ export default function LoginPage() {
             </p>
           </div>
         </div>
+
+        <p className="mt-6 text-center text-xs text-text-muted/50">
+          Wellness BI &middot; Agency Dashboard
+        </p>
       </motion.div>
     </div>
   );
