@@ -71,7 +71,6 @@ export const CONNECTORS: ConnectorDefinition[] = [
     authType: 'oauth',
     fields: [
       { key: 'property_id', label: 'GA4 Property ID', placeholder: '123456789', secret: false },
-      { key: 'refresh_token', label: 'Refresh Token', placeholder: '1//0...', secret: true },
     ],
   },
 ];

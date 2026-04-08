@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getConnector } from '@/lib/connectors/registry';
 import { createServerClient } from '@/lib/supabase';
 
+export const dynamic = 'force-dynamic';
+
 interface RouteParams {
   params: { clientId: string; slug: string };
 }
@@ -14,7 +16,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   const connector = getConnector(slug);
   if (!connector) {
     return NextResponse.json(
-      { status: 'error', error: `Unknown connector: ${slug}` },
+      { status: 'error', error: `Unknown connector: ${slug}`, code: 'UNKNOWN_CONNECTOR' },
       { status: 400 }
     );
   }
@@ -26,7 +28,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   if (missing.length > 0) {
     return NextResponse.json(
-      { status: 'error', error: `Missing fields: ${missing.join(', ')}` },
+      { status: 'error', error: `Missing fields: ${missing.join(', ')}`, code: 'MISSING_FIELDS' },
       { status: 400 }
     );
   }
@@ -53,7 +55,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   if (dbError) {
     return NextResponse.json(
-      { status: 'error', error: dbError.message },
+      { status: 'error', error: dbError.message, code: 'DB_ERROR' },
       { status: 500 }
     );
   }
@@ -63,4 +65,32 @@ export async function POST(request: Request, { params }: RouteParams) {
     data: { clientId, slug, connected: true },
     lastUpdated: new Date().toISOString(),
   });
+}
+
+export async function DELETE(_request: Request, { params }: RouteParams) {
+  const { clientId, slug } = params;
+
+  const connector = getConnector(slug);
+  if (!connector) {
+    return NextResponse.json(
+      { error: `Unknown connector: ${slug}`, code: 'UNKNOWN_CONNECTOR' },
+      { status: 404 }
+    );
+  }
+
+  const supabase = createServerClient();
+  const { error: dbError } = await supabase
+    .from('connector_credentials')
+    .delete()
+    .eq('client_id', clientId)
+    .eq('connector_slug', slug);
+
+  if (dbError) {
+    return NextResponse.json(
+      { error: dbError.message, code: 'DB_ERROR' },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ success: true });
 }

@@ -1,15 +1,24 @@
-/** Data shape for the Yelp connector */
-export interface YelpData {
+export interface YelpBusiness {
+  id: string;
+  name: string;
   rating: number;
-  reviewCount: number;
-  newReviews: number;
-  recentReviews: YelpReview[];
+  review_count: number;
 }
 
 export interface YelpReview {
   id: string;
   rating: number;
   text: string;
-  date: string;
-  userName: string;
+  time_created: string;
+  user: {
+    name: string;
+    image_url: string | null;
+  };
+}
+
+export interface YelpData {
+  rating: number;
+  reviewCount: number;
+  newReviewsLast30Days: number;
+  recentReviews: YelpReview[];
 }

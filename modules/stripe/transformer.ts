@@ -1,35 +1,39 @@
 import type { StripeData } from './types';
-import type { BaseMetric } from '@/types';
+import type { ConnectorResponse } from '@/types';
 
 /** Convert cents to dollars */
 function centsToDollars(cents: number): number {
   return Math.round(cents) / 100;
 }
 
-/** Transform raw StripeData into display-ready format */
-export function transformData(raw: StripeData) {
+/** Transform raw StripeData into universal ConnectorResponse */
+export function transformData(raw: StripeData): ConnectorResponse {
+  const avgTransaction =
+    raw.transactionCount > 0
+      ? centsToDollars(Math.round(raw.netRevenue / raw.transactionCount))
+      : 0;
+
+  const refundRate =
+    raw.transactionCount > 0
+      ? Math.round((raw.refundCount / raw.transactionCount) * 10000) / 100
+      : 0;
+
   return {
-    totalRevenue: centsToDollars(raw.totalRevenue),
-    transactionCount: raw.transactionCount,
-    mrr: centsToDollars(raw.mrr),
-    revenueChart: raw.revenueChart.map((d) => ({
+    metrics: [
+      { key: 'grossRevenue', label: 'Gross Revenue', value: centsToDollars(raw.grossRevenue), format: 'currency' },
+      { key: 'netRevenue', label: 'Net Revenue', value: centsToDollars(raw.netRevenue), format: 'currency' },
+      { key: 'transactionCount', label: 'Transactions', value: raw.transactionCount, format: 'number' },
+      { key: 'avgTransaction', label: 'Avg Transaction', value: avgTransaction, format: 'currency' },
+      { key: 'mrr', label: 'MRR', value: centsToDollars(raw.mrr), format: 'currency' },
+      { key: 'refundRate', label: 'Refund Rate', value: refundRate, format: 'percent' },
+    ],
+    timeseries: raw.dailyRevenue.map((d) => ({
       date: d.date,
-      revenue: centsToDollars(d.revenue),
+      value: centsToDollars(d.revenue),
     })),
-  };
-}
-
-/** Convert a single value into BaseMetric format */
-export function toBaseMetric(value: number, previousValue?: number): BaseMetric {
-  const change = previousValue !== undefined ? value - previousValue : 0;
-  const changePercent = previousValue && previousValue !== 0
-    ? (change / previousValue) * 100
-    : 0;
-
-  return {
-    value,
-    change,
-    changePercent,
-    lastUpdated: new Date().toISOString(),
+    breakdowns: raw.topProducts.map((p) => ({
+      label: p.name,
+      value: centsToDollars(p.revenue),
+    })),
   };
 }

@@ -12,9 +12,10 @@ interface ConnectorCardProps {
   status: ConnectorStatus;
   lastSync: string | null;
   onConnect?: () => void;
+  onDisconnect?: () => void;
 }
 
-export function ConnectorCard({ name, slug, status, lastSync, onConnect }: ConnectorCardProps) {
+export function ConnectorCard({ name, slug, status, lastSync, onConnect, onDisconnect }: ConnectorCardProps) {
   const Icon = slug ? getConnectorIcon(slug) : null;
 
   return (
@@ -42,6 +43,11 @@ export function ConnectorCard({ name, slug, status, lastSync, onConnect }: Conne
           {status === 'disconnected' && onConnect && (
             <Button variant="outline" size="sm" onClick={onConnect}>
               Connect
+            </Button>
+          )}
+          {status === 'connected' && onDisconnect && (
+            <Button variant="ghost" size="sm" className="text-text-muted hover:text-red-400" onClick={onDisconnect}>
+              Disconnect
             </Button>
           )}
         </div>
