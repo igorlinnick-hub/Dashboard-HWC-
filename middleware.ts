@@ -2,9 +2,14 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const publicPaths = ['/login', '/signup'];
-
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Skip middleware for public auth pages — no Supabase call needed
+  if (pathname.startsWith('/login') || pathname.startsWith('/signup')) {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -32,25 +37,15 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  const isPublic = publicPaths.some((p) => pathname.startsWith(p));
-  const isApi = pathname.startsWith('/api');
-
-  // Not logged in + trying to access protected page → redirect to /login
-  if (!user && !isPublic && !isApi) {
+  // Not logged in → redirect to /login
+  if (!user) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
-  }
-
-  // Logged in + visiting login/signup → redirect to dashboard
-  if (user && isPublic) {
-    const homeUrl = new URL('/', request.url);
-    return NextResponse.redirect(homeUrl);
   }
 
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
 };
