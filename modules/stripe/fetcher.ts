@@ -12,7 +12,7 @@ export async function fetchData(
   from: string,
   to: string
 ): Promise<StripeData> {
-  const stripe = new Stripe(apiKey, { apiVersion: '2025-04-30.basil' });
+  const stripe = new Stripe(apiKey, { apiVersion: '2026-03-25.dahlia' });
 
   const gteTs = Math.floor(new Date(from).getTime() / 1000);
   // End of "to" day
