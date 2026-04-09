@@ -10,8 +10,12 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+interface ChartDataPoint {
+  [key: string]: string | number;
+}
+
 interface BarChartWidgetProps {
-  data: Record<string, unknown>[];
+  data: ChartDataPoint[];
   xKey: string;
   yKey: string;
   title?: string;

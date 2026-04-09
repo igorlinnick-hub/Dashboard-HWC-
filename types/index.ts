@@ -62,12 +62,21 @@ export interface BaseMetric {
   lastUpdated: string;
 }
 
+/** Typed error codes returned by connector data routes */
+export type ConnectorErrorCode =
+  | 'INVALID_KEY'
+  | 'CONNECTION_TIMEOUT'
+  | 'RATE_LIMIT'
+  | 'NOT_CONNECTED'
+  | 'UNKNOWN';
+
 /** Standard API response */
 export interface ApiResponse<T = Record<string, unknown>> {
   status: 'ok' | 'error';
   data: T;
   lastUpdated: string;
   error?: string;
+  code?: ConnectorErrorCode;
 }
 
 /** Client card summary for agency overview */
@@ -76,4 +85,37 @@ export interface ClientSummary {
   connectedCount: number;
   totalConnectors: number;
   topMetric?: { label: string; value: string };
+}
+
+// ==========================================
+// Universal Data Model (Ch 2.1)
+// ==========================================
+
+/** A single KPI metric */
+export interface Metric {
+  key: string;
+  label: string;
+  value: number;
+  format: 'currency' | 'number' | 'percent' | 'duration' | 'rating';
+}
+
+/** A single timeseries data point */
+export interface TimeseriesPoint {
+  [key: string]: string | number;
+  date: string;
+  value: number;
+}
+
+/** A breakdown item (e.g. top service, campaign) */
+export interface BreakdownItem {
+  label: string;
+  value: number;
+  meta?: Record<string, string | number | boolean>;
+}
+
+/** Universal connector response — every transformer returns this */
+export interface ConnectorResponse {
+  metrics: Metric[];
+  timeseries: TimeseriesPoint[];
+  breakdowns: BreakdownItem[];
 }

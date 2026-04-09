@@ -1,20 +1,26 @@
-/** Data shape for the Meta (Facebook/Instagram Ads) connector */
-export interface MetaData {
-  adSpend: number;
-  impressions: number;
-  clicks: number;
-  ctr: number;
-  cpc: number;
-  conversions: number;
-  costPerConversion: number;
-  campaigns: MetaCampaign[];
+export interface SupermetricsRow {
+  date: string;
+  campaign_name?: string;
+  campaign_id?: string;
+  spend?: number;
+  impressions?: number;
+  clicks?: number;
+  reach?: number;
+  conversions?: number;
 }
 
-export interface MetaCampaign {
-  id: string;
-  name: string;
-  spend: number;
-  impressions: number;
-  clicks: number;
-  status: string;
+export interface MetaData {
+  totalSpend: number;
+  totalImpressions: number;
+  totalClicks: number;
+  totalConversions: number;
+  dailySpend: { date: string; spend: number }[];
+  campaigns: {
+    id: string;
+    name: string;
+    spend: number;
+    impressions: number;
+    clicks: number;
+    status: string;
+  }[];
 }

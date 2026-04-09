@@ -7,9 +7,16 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { name, slug } = body;
 
-  if (!name || !slug) {
+  const finalSlug = slug || name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+
+  if (!name || !finalSlug) {
     return NextResponse.json(
-      { status: 'error', error: 'Name and slug are required' },
+      { status: 'error', error: 'Name is required', code: 'INVALID_INPUT' },
       { status: 400 }
     );
   }
@@ -23,7 +30,7 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json(
-      { status: 'error', error: error.message },
+      { status: 'error', error: error.message, code: 'DB_ERROR' },
       { status: 500 }
     );
   }
@@ -52,7 +59,7 @@ export async function GET() {
 
   if (error) {
     return NextResponse.json(
-      { status: 'error', error: error.message, data: [] },
+      { status: 'error', error: error.message, code: 'DB_ERROR', data: [] },
       { status: 500 }
     );
   }

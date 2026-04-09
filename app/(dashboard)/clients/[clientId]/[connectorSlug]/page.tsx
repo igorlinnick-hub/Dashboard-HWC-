@@ -1,117 +1,273 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { fetcher } from '@/lib/fetcher';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { getConnector } from '@/lib/connectors/registry';
 import { getConnectorIcon } from '@/lib/connectors/icons';
+import { fetcher } from '@/lib/fetcher';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { MetricCard } from '@/components/charts/MetricCard';
 import { LineChartWidget } from '@/components/charts/LineChartWidget';
-import { CardSkeleton } from '@/components/ui/Skeleton';
+import { BarChartWidget } from '@/components/charts/BarChartWidget';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { Button } from '@/components/ui/Button';
+import type { ConnectorResponse, ConnectorErrorCode } from '@/types';
 
-const chartConfig: Record<string, { key: string; yKey: string; title: string }> = {
-  bank: { key: 'chart', yKey: 'balance', title: 'Balance (30 days)' },
-  stripe: { key: 'revenueChart', yKey: 'revenue', title: 'Revenue (7 days)' },
-  square: { key: 'chart', yKey: 'sales', title: 'Daily Sales (30 days)' },
-  meta: { key: 'chart', yKey: 'spend', title: 'Ad Spend (30 days)' },
-  yelp: { key: 'chart', yKey: 'rating', title: 'Rating Trend (30 days)' },
-  tiktok: { key: 'chart', yKey: 'spend', title: 'Ad Spend (30 days)' },
-  'google-analytics': { key: 'chart', yKey: 'sessions', title: 'Sessions (30 days)' },
-};
-
-function formatMetricName(key: string): string {
-  return key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (s) => s.toUpperCase())
-    .trim();
-}
-
-function formatMetricValue(key: string, value: unknown): string {
-  if (typeof value !== 'number') return String(value);
-  const k = key.toLowerCase();
-  if (k.includes('revenue') || k.includes('spend') || k.includes('mrr') || k.includes('balance') || k.includes('sales') || k.includes('ticket') || k.includes('deposits') || k.includes('cashflow') || k.includes('cost')) {
-    return `$${value.toLocaleString()}`;
-  }
-  if (k.includes('rate') || k.includes('ctr')) {
-    return `${value}%`;
-  }
-  if (k.includes('duration')) {
-    return `${Math.floor(value / 60)}m ${value % 60}s`;
-  }
-  return value.toLocaleString();
+interface DataApiResponse {
+  status: 'ok' | 'error';
+  data: ConnectorResponse | null;
+  lastUpdated?: string;
+  error?: string;
+  code?: ConnectorErrorCode;
+  meta?: {
+    clientId: string;
+    connector: string;
+    mock?: boolean;
+    cached?: boolean;
+    notConnected?: boolean;
+    period: { from: string; to: string };
+  };
 }
 
 export default function ConnectorDetailPage() {
   const params = useParams<{ clientId: string; connectorSlug: string }>();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const { clientId, connectorSlug } = params;
-
   const connector = getConnector(connectorSlug);
-  const title = connector?.name ?? connectorSlug;
   const Icon = getConnectorIcon(connectorSlug);
-  const cfg = chartConfig[connectorSlug];
 
-  const { data, isLoading } = useSWR(
-    `/api/clients/${clientId}/connectors/${connectorSlug}/data`,
-    fetcher
+  // Build API URL with period params
+  const from = searchParams.get('from');
+  const to = searchParams.get('to');
+  const apiUrl = buildApiUrl(clientId, connectorSlug, from, to);
+
+  const { data: response, error: fetchError, isLoading, mutate } = useSWR<DataApiResponse>(
+    apiUrl,
+    fetcher,
   );
 
-  const metrics = data?.data ?? {};
-  const metricEntries = Object.entries(metrics).filter(
-    ([, v]) => typeof v === 'number'
-  );
-  const chartData = cfg
-    ? ((metrics as Record<string, unknown>)[cfg.key] as Record<string, unknown>[] | undefined)
-    : undefined;
+  // Refresh handler — re-fetch with cache bypass
+  function handleRefresh() {
+    const refreshUrl = apiUrl + (apiUrl.includes('?') ? '&' : '?') + 'refresh=true';
+    fetch(refreshUrl).then(() => mutate());
+  }
 
-  if (isLoading) {
+  if (!connector) {
     return (
-      <PageWrapper title={title}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <CardSkeleton key={i} />
-          ))}
-        </div>
+      <PageWrapper title="Connector">
+        <ErrorState
+          title="Unknown connector"
+          description={`Connector "${connectorSlug}" is not registered.`}
+          code="UNKNOWN"
+        />
       </PageWrapper>
     );
   }
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <PageWrapper title={connector.name}>
+        <LoadingSkeleton />
+      </PageWrapper>
+    );
+  }
+
+  // Network error
+  if (fetchError) {
+    return (
+      <PageWrapper title={connector.name}>
+        <ErrorState
+          code="CONNECTION_TIMEOUT"
+          onRetry={() => mutate()}
+        />
+      </PageWrapper>
+    );
+  }
+
+  // API returned error
+  if (response?.status === 'error') {
+    return (
+      <PageWrapper title={connector.name}>
+        <ErrorState
+          title={response.error}
+          code={response.code ?? 'UNKNOWN'}
+          onRetry={() => mutate()}
+        />
+      </PageWrapper>
+    );
+  }
+
+  // Not connected
+  if (response?.meta?.notConnected) {
+    return (
+      <PageWrapper title={connector.name}>
+        <EmptyState
+          connectorName={connector.name}
+          onConnect={() => router.push(`/clients/${clientId}`)}
+        />
+      </PageWrapper>
+    );
+  }
+
+  const connectorData = response?.data;
+  if (!connectorData) {
+    return (
+      <PageWrapper title={connector.name}>
+        <ErrorState code="UNKNOWN" onRetry={() => mutate()} />
+      </PageWrapper>
+    );
+  }
+
+  const { metrics, timeseries, breakdowns } = connectorData;
+
+  // Split breakdowns by type for multi-chart rendering
+  const methodBreakdown = breakdowns.filter(b => b.meta?.type === 'method' || !b.meta?.type);
+  const hourBreakdown = breakdowns.filter(b => b.meta?.type === 'hour');
+
   return (
-    <PageWrapper title={title}>
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-muted">
-          <Icon className="h-5 w-5 text-accent" />
-        </div>
-        <div>
-          <p className="text-sm text-text-muted">{connector?.category}</p>
-        </div>
-      </div>
-
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {metricEntries.map(([key, value], i) => (
-          <div key={key} className="animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
-            <MetricCard
-              title={formatMetricName(key)}
-              value={formatMetricValue(key, value)}
-            />
+    <PageWrapper title={connector.name}>
+      {/* Top bar: back button, connector info, refresh */}
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push(`/clients/${clientId}`)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-surface-border text-text-muted transition-colors hover:border-surface-subtle hover:text-text-primary"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-muted">
+              <Icon className="h-4 w-4 text-accent" />
+            </div>
+            <h3 className="text-lg font-semibold text-text-primary">{connector.name}</h3>
           </div>
-        ))}
+          {response?.meta?.mock && (
+            <span className="rounded bg-surface-subtle px-2 py-0.5 text-xs text-text-muted">
+              Mock data
+            </span>
+          )}
+          {response?.meta?.cached && (
+            <span className="rounded bg-surface-subtle px-2 py-0.5 text-xs text-text-muted">
+              Cached
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {response?.lastUpdated && (
+            <span className="text-xs text-text-muted">
+              Updated {formatTimestamp(response.lastUpdated)}
+            </span>
+          )}
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
-        {chartData && chartData.length > 0 && cfg ? (
-          <LineChartWidget
-            data={chartData}
-            xKey="date"
-            yKey={cfg.yKey}
-            title={cfg.title}
-          />
-        ) : (
-          <div className="rounded-xl border border-surface-border bg-surface-card p-8 text-center">
-            <p className="text-sm text-text-muted">Chart data will appear once the connector is live.</p>
+      {/* Metrics grid */}
+      {metrics.length > 0 && (
+        <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+          {metrics.map((metric) => (
+            <MetricCard key={metric.key} metric={metric} />
+          ))}
+        </div>
+      )}
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {timeseries.length > 0 && (
+          <div className="overflow-x-auto pb-2">
+            <div className="min-w-[400px]">
+              <LineChartWidget
+                data={timeseries}
+                xKey="date"
+                yKey="value"
+                title="Trend"
+              />
+            </div>
+          </div>
+        )}
+        {methodBreakdown.length > 0 && (
+          <div className="overflow-x-auto pb-2">
+            <div className="min-w-[400px]">
+              <BarChartWidget
+                data={methodBreakdown.map((b) => ({ label: b.label, value: b.value }))}
+                xKey="label"
+                yKey="value"
+                title="Payment Methods"
+              />
+            </div>
+          </div>
+        )}
+        {hourBreakdown.length > 0 && (
+          <div className="lg:col-span-2 overflow-x-auto pb-2">
+            <div className="min-w-[400px]">
+              <BarChartWidget
+                data={hourBreakdown.map((b) => ({ label: b.label, value: b.value }))}
+                xKey="label"
+                yKey="value"
+                title="Busiest Hours"
+              />
+            </div>
           </div>
         )}
       </div>
     </PageWrapper>
+  );
+}
+
+/** Build the data API URL with optional period params */
+function buildApiUrl(clientId: string, slug: string, from: string | null, to: string | null): string {
+  const base = `/api/clients/${clientId}/connectors/${slug}/data`;
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+/** Format ISO timestamp to relative or short format */
+function formatTimestamp(iso: string): string {
+  const date = new Date(iso);
+  const now = Date.now();
+  const diffSec = Math.floor((now - date.getTime()) / 1000);
+
+  if (diffSec < 60) return 'just now';
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/** Skeleton placeholders for loading state */
+function LoadingSkeleton() {
+  return (
+    <>
+      <div className="mb-6 flex items-center justify-between">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-8 w-24" />
+      </div>
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <MetricCard key={i} isLoading />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-surface-border bg-surface-card p-5">
+          <Skeleton className="mb-4 h-4 w-16" />
+          <Skeleton className="h-[300px] w-full" />
+        </div>
+        <div className="rounded-xl border border-surface-border bg-surface-card p-5">
+          <Skeleton className="mb-4 h-4 w-20" />
+          <Skeleton className="h-[300px] w-full" />
+        </div>
+      </div>
+    </>
   );
 }

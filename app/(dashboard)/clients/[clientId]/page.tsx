@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -11,8 +11,11 @@ import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { CardSkeleton } from '@/components/ui/Skeleton';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useToast } from '@/hooks/use-toast';
 import { ConnectModal } from '@/components/connectors/ConnectModal';
+import { ConnectorCard } from '@/components/connectors/ConnectorCard';
+import { MetricCard } from '@/components/charts/MetricCard';
 import type { ClientConnector, ConnectorDefinition, ConnectorCategory } from '@/types';
 
 const categoryLabels: Record<ConnectorCategory, string> = {
@@ -26,6 +29,8 @@ export default function ClientOverviewPage() {
   const params = useParams<{ clientId: string }>();
   const clientId = params.clientId;
   const [connectingDef, setConnectingDef] = useState<ConnectorDefinition | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] = useState<ConnectorDefinition | null>(null);
+  const { toast } = useToast();
 
   const { data, isLoading, mutate } = useSWR<{ data: ClientConnector[] }>(
     `/api/clients/${clientId}/connectors`,
@@ -43,12 +48,44 @@ export default function ClientOverviewPage() {
     return acc;
   }, {});
 
+  const handleDisconnect = useCallback(async (def: ConnectorDefinition) => {
+    // Optimistic update
+    mutate(
+      (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          data: current.data.map((c) =>
+            c.definition.slug === def.slug
+              ? { ...c, isConnected: false, connectedAt: null }
+              : c
+          ),
+        };
+      },
+      false
+    );
+    setConfirmDisconnect(null);
+
+    const res = await fetch(
+      `/api/clients/${clientId}/connectors/${def.slug}/connect`,
+      { method: 'DELETE' }
+    );
+
+    if (res.ok) {
+      toast(`${def.name} disconnected`, 'success');
+    } else {
+      toast(`Failed to disconnect ${def.name}`, 'error');
+    }
+
+    mutate();
+  }, [clientId, mutate]);
+
   if (isLoading) {
     return (
       <PageWrapper title="Client Overview">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <CardSkeleton key={i} />
+            <MetricCard key={i} isLoading />
           ))}
         </div>
       </PageWrapper>
@@ -84,52 +121,28 @@ export default function ClientOverviewPage() {
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
               {categoryLabels[cat]}
             </h3>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {group.map((c, i) => {
                 const Icon = getConnectorIcon(c.definition.slug);
                 return (
                   <div key={c.definition.slug} className="animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
-                    <Card className={`${c.isConnected ? 'border-accent/20' : 'hover:border-surface-subtle'}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                            c.isConnected ? 'bg-accent-muted' : 'bg-surface-subtle'
-                          }`}>
-                            <Icon className={`h-5 w-5 ${c.isConnected ? 'text-accent' : 'text-text-muted'}`} />
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-text-primary">{c.definition.name}</h4>
-                            <p className="text-xs text-text-muted">{c.definition.authType}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {c.isConnected && (
-                            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent">
-                              <Check className="h-3 w-3 text-white" />
-                            </div>
-                          )}
-                          <Badge status={c.isConnected ? 'connected' : 'disconnected'} />
-                        </div>
-                      </div>
-                      <div className="mt-4">
-                        {c.isConnected ? (
-                          <Link href={`/clients/${clientId}/${c.definition.slug}`}>
-                            <Button variant="outline" size="sm" className="w-full">
-                              View Data
-                            </Button>
-                          </Link>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full border border-surface-border text-text-muted hover:border-accent/50 hover:text-accent"
-                            onClick={() => setConnectingDef(c.definition)}
-                          >
-                            Connect
+                    <ConnectorCard
+                      name={c.definition.name}
+                      slug={c.definition.slug}
+                      status={c.isConnected ? 'connected' : 'disconnected'}
+                      lastSync={c.connectedAt ? new Date(c.connectedAt).toLocaleDateString() : null}
+                      onConnect={() => setConnectingDef(c.definition)}
+                      onDisconnect={() => setConfirmDisconnect(c.definition)}
+                    />
+                    {c.isConnected && (
+                      <div className="mt-2 text-right">
+                        <Link href={`/clients/${clientId}/${c.definition.slug}`}>
+                          <Button variant="outline" size="xs" className="text-[10px] h-6 px-2">
+                            View Data
                           </Button>
-                        )}
+                        </Link>
                       </div>
-                    </Card>
+                    )}
                   </div>
                 );
               })}
@@ -138,6 +151,7 @@ export default function ClientOverviewPage() {
         );
       })}
 
+      {/* Connect modal */}
       {connectingDef && (
         <ConnectModal
           connector={connectingDef}
@@ -145,10 +159,44 @@ export default function ClientOverviewPage() {
           onClose={() => setConnectingDef(null)}
           onSuccess={() => {
             setConnectingDef(null);
+            toast(`${connectingDef.name} connected`, 'success');
             mutate();
           }}
         />
       )}
+
+      {/* Confirm disconnect dialog */}
+      {confirmDisconnect && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-surface-border bg-surface-card p-6 shadow-2xl animate-slide-up">
+            <h3 className="text-lg font-bold text-text-primary">
+              Disconnect {confirmDisconnect.name}?
+            </h3>
+            <p className="mt-2 text-sm text-text-muted">
+              This will remove saved credentials. You can reconnect later.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => setConfirmDisconnect(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                className="flex-1 bg-red-500 hover:bg-red-600"
+                onClick={() => handleDisconnect(confirmDisconnect)}
+              >
+                Disconnect
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </PageWrapper>
   );
 }
