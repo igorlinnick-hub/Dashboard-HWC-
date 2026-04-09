@@ -28,23 +28,9 @@ export default function LoginPage() {
       return;
     }
 
-    if (!key.startsWith('eyJ')) {
-      setError('Invalid NEXT_PUBLIC_SUPABASE_ANON_KEY — expected JWT (eyJ...), got a different format. Check Vercel env vars.');
-      setLoading(false);
-      return;
-    }
-
     try {
       const supabase = createBrowserClient();
-
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Login timed out — check Supabase URL and keys')), 10000)
-      );
-
-      const { error: authError } = await Promise.race([
-        supabase.auth.signInWithPassword({ email, password }),
-        timeout,
-      ]);
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
       if (authError) {
         setError(authError.message);
@@ -52,8 +38,8 @@ export default function LoginPage() {
         return;
       }
 
-      router.refresh();
-      router.push('/');
+      // Force a full page reload to ensure middleware picks up the new cookies
+      window.location.href = '/';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unexpected error during login');
       setLoading(false);

@@ -44,8 +44,7 @@ export default function SignupPage() {
       return;
     }
 
-    router.refresh();
-    router.push('/');
+    window.location.href = '/';
   }
 
   const inputClass =

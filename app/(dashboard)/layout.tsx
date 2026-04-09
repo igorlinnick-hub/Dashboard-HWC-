@@ -7,10 +7,6 @@ import { SidebarProvider, useSidebar } from '@/hooks/use-sidebar';
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { isOpen, setIsOpen } = useSidebar();
 
-  // Auth is handled by middleware — no client-side check needed.
-  // The middleware redirects unauthenticated users to /login before
-  // this layout ever renders.
-
   return (
     <div className="flex h-screen bg-surface overflow-hidden">
       {/* Mobile sidebar overlay */}
