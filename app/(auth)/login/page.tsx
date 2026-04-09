@@ -19,19 +19,31 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const supabase = createBrowserClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (authError) {
-      setError(authError.message);
+    if (!url || !key) {
+      setError('Supabase not configured: missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
       setLoading(false);
       return;
     }
 
-    router.push('/');
+    try {
+      const supabase = createBrowserClient();
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      // Force a full page reload to ensure middleware picks up the new cookies
+      window.location.href = '/';
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unexpected error during login');
+      setLoading(false);
+    }
   }
 
   const inputClass =

@@ -58,12 +58,14 @@
 
 ## Build Status
 
-- `tsc --noEmit` -> **0 errors** (verified 2026-04-08, final)
-- `npm run build` -> requires Node 18 or 20 (Node v24 incompatible with Next.js 14)
+- `tsc --noEmit` -> **0 errors** (verified 2026-04-09, final)
+- `npm run build` -> requires Node 18, 20, or 22 (Node v24 is incompatible)
 
 ## Known Issues
 
-- **Node.js v24**: `npm run build` fails with `ERR_INVALID_PACKAGE_CONFIG`. Use Node 18 or 20.
+- **Node.js v24**: `npm run build` / `dev` fails with `ERR_INVALID_PACKAGE_CONFIG` or `TypeError`. Use Node 22.
+- **Middleware Redirects**: Fixed infinite loop when refreshing sessions by propagating cookies during redirects.
+- **Auth Sync**: Standardized on `@supabase/ssr` for browser/server session parity.
 - **Stripe webhook**: stub only — no signature verification or event handling.
 
 ## Architecture Quick Ref
