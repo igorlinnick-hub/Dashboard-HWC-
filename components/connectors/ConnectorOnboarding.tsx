@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ConnectModal } from '@/components/connectors/ConnectModal';
+import { useCountUp } from '@/hooks/use-count-up';
 import type { ConnectorDefinition } from '@/types';
 
 interface PreviewMetric {
@@ -92,29 +93,6 @@ const CONFIG: Record<string, OnboardingConfig> = {
   },
 };
 
-function useCountUp(target: number, active: boolean, duration = 1400): number {
-  const [value, setValue] = useState(0);
-
-  useEffect(() => {
-    if (!active) return;
-    setValue(0);
-    const steps = 40;
-    const interval = duration / steps;
-    let step = 0;
-    const timer = setInterval(() => {
-      step++;
-      const progress = step / steps;
-      // ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(target * eased));
-      if (step >= steps) clearInterval(timer);
-    }, interval);
-    return () => clearInterval(timer);
-  }, [target, active, duration]);
-
-  return value;
-}
-
 function PreviewMetricCard({ metric, active, delay }: { metric: PreviewMetric; active: boolean; delay: number }) {
   const [started, setStarted] = useState(false);
 
@@ -124,7 +102,7 @@ function PreviewMetricCard({ metric, active, delay }: { metric: PreviewMetric; a
     return () => clearTimeout(t);
   }, [active, delay]);
 
-  const value = useCountUp(metric.target, started);
+  const value = useCountUp(started ? metric.target : 0);
 
   function fmt(n: number): string {
     if (n >= 1000) return n.toLocaleString('en-US');

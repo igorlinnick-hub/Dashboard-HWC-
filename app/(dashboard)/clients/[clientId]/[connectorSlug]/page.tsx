@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
@@ -46,15 +47,19 @@ export default function ConnectorDetailPage() {
   const to = searchParams.get('to');
   const apiUrl = buildApiUrl(clientId, connectorSlug, from, to);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: response, error: fetchError, isLoading, mutate } = useSWR<DataApiResponse>(
     apiUrl,
     fetcher,
   );
 
   // Refresh handler — re-fetch with cache bypass
-  function handleRefresh() {
+  async function handleRefresh() {
+    setIsRefreshing(true);
     const refreshUrl = apiUrl + (apiUrl.includes('?') ? '&' : '?') + 'refresh=true';
-    fetch(refreshUrl).then(() => mutate());
+    await fetch(refreshUrl);
+    await mutate();
+    setIsRefreshing(false);
   }
 
   if (!connector) {
@@ -166,9 +171,9 @@ export default function ConnectorDetailPage() {
               Updated {formatTimestamp(response.lastUpdated)}
             </span>
           )}
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-            Refresh
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing…' : 'Refresh'}
           </Button>
         </div>
       </div>
@@ -176,8 +181,8 @@ export default function ConnectorDetailPage() {
       {/* Metrics grid */}
       {metrics.length > 0 && (
         <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-          {metrics.map((metric) => (
-            <MetricCard key={metric.key} metric={metric} />
+          {metrics.map((metric, i) => (
+            <MetricCard key={metric.key} metric={metric} delay={i * 60} />
           ))}
         </div>
       )}
@@ -257,7 +262,7 @@ function LoadingSkeleton() {
       </div>
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <MetricCard key={i} isLoading />
+          <MetricCard key={i} isLoading delay={i * 60} />
         ))}
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

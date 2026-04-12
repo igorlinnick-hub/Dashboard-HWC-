@@ -29,7 +29,7 @@ const sizes = {
 export function Button({ variant = 'primary', size = 'md', children, className = '', ...props }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 active:scale-[0.97] ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
       {children}

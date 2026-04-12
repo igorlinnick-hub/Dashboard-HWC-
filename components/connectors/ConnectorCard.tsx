@@ -19,7 +19,7 @@ export function ConnectorCard({ name, slug, status, lastSync, onConnect, onDisco
   const Icon = slug ? getConnectorIcon(slug) : null;
 
   return (
-    <Card className={status === 'connected' ? 'border-accent/20' : 'hover:border-surface-subtle'}>
+    <Card className={`transition-all duration-200 ${status === 'connected' ? 'border-accent/20' : 'hover:border-accent/30 hover:shadow-[0_0_20px_rgba(249,115,22,0.1)]'}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
