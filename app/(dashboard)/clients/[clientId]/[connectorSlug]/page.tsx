@@ -10,9 +10,9 @@ import { PageWrapper } from '@/components/layout/PageWrapper';
 import { MetricCard } from '@/components/charts/MetricCard';
 import { LineChartWidget } from '@/components/charts/LineChartWidget';
 import { BarChartWidget } from '@/components/charts/BarChartWidget';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { ConnectorOnboarding } from '@/components/connectors/ConnectorOnboarding';
 import { Button } from '@/components/ui/Button';
 import type { ConnectorResponse, ConnectorErrorCode } from '@/types';
 
@@ -78,20 +78,25 @@ export default function ConnectorDetailPage() {
     );
   }
 
-  // Network error
+  // Network error — show onboarding (user likely just hasn't connected yet)
   if (fetchError) {
     return (
       <PageWrapper title={connector.name}>
-        <ErrorState
-          code="CONNECTION_TIMEOUT"
-          onRetry={() => mutate()}
-        />
+        <ConnectorOnboarding connector={connector} clientId={clientId} onConnected={() => mutate()} />
       </PageWrapper>
     );
   }
 
-  // API returned error
+  // API returned error with credentials issue — show onboarding so user can reconnect
   if (response?.status === 'error') {
+    const isCredentialError = response.code === 'INVALID_KEY' || response.code === 'NOT_CONNECTED';
+    if (isCredentialError) {
+      return (
+        <PageWrapper title={connector.name}>
+          <ConnectorOnboarding connector={connector} clientId={clientId} onConnected={() => mutate()} />
+        </PageWrapper>
+      );
+    }
     return (
       <PageWrapper title={connector.name}>
         <ErrorState
@@ -107,10 +112,7 @@ export default function ConnectorDetailPage() {
   if (response?.meta?.notConnected) {
     return (
       <PageWrapper title={connector.name}>
-        <EmptyState
-          connectorName={connector.name}
-          onConnect={() => router.push(`/clients/${clientId}`)}
-        />
+        <ConnectorOnboarding connector={connector} clientId={clientId} onConnected={() => mutate()} />
       </PageWrapper>
     );
   }
@@ -119,7 +121,7 @@ export default function ConnectorDetailPage() {
   if (!connectorData) {
     return (
       <PageWrapper title={connector.name}>
-        <ErrorState code="UNKNOWN" onRetry={() => mutate()} />
+        <ConnectorOnboarding connector={connector} clientId={clientId} onConnected={() => mutate()} />
       </PageWrapper>
     );
   }
