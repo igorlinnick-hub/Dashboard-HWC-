@@ -140,9 +140,9 @@ export async function GET(request: Request, { params }: RouteParams) {
   }
 
   // --- SQUARE: real implementation when access_token exists ---
-  if (slug === 'square' && creds?.access_token && creds?.location_id) {
+  if (slug === 'square' && creds?.extra_config?.access_token && creds?.extra_config?.location_id) {
     try {
-      const rawData = await fetchSquareData(creds.access_token, creds.location_id, from, to);
+      const rawData = await fetchSquareData(creds.extra_config.access_token, creds.extra_config.location_id, from, to);
       const transformed = transformSquare(rawData);
       const now = new Date().toISOString();
 
