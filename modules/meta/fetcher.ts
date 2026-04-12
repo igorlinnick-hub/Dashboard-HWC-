@@ -1,5 +1,16 @@
 import type { MetaData, SupermetricsRow } from './types';
 
+export async function testConnection(apiKey: string, accountId: string): Promise<void> {
+  const url = new URL('https://api.supermetrics.com/enterprise/v2/query/data/json');
+  url.searchParams.set('ds_id', 'FA');
+  url.searchParams.set('ds_accounts', accountId);
+  url.searchParams.set('metrics', 'spend');
+  url.searchParams.set('date_range_type', 'last_7_days');
+  url.searchParams.set('api_key', apiKey);
+  const response = await fetch(url.toString());
+  if (!response.ok) throw new Error(`Meta/Supermetrics auth failed: ${response.status}`);
+}
+
 /**
  * Fetch Meta Ads data via Supermetrics JSON API.
  */

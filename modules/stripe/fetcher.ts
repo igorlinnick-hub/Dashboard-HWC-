@@ -1,6 +1,11 @@
 import Stripe from 'stripe';
 import type { StripeData, DailyRevenue, ProductBreakdown } from './types';
 
+export async function testConnection(apiKey: string): Promise<void> {
+  const stripe = new Stripe(apiKey, { apiVersion: '2026-03-25.dahlia' });
+  await stripe.balance.retrieve();
+}
+
 /**
  * Fetch real Stripe data for a given period.
  * @param apiKey — Stripe secret key

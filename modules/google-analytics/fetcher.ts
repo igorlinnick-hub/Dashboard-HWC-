@@ -1,6 +1,15 @@
 import { refreshAccessToken } from '@/lib/google-auth';
 import type { GAData, GADailyRow, GAChannelRow, GA4RunReportResponse } from './types';
 
+export async function testConnection(refreshToken: string, propertyId: string): Promise<void> {
+  const accessToken = await refreshAccessToken(refreshToken);
+  const res = await fetch(
+    `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}/metadata`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) throw new Error(`GA4 auth failed: ${res.status}`);
+}
+
 /**
  * Fetch real GA4 data via the Google Analytics Data API v1beta.
  * @param refreshToken — stored in connector_credentials.api_key

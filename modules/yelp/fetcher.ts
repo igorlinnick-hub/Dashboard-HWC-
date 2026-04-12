@@ -1,5 +1,12 @@
 import type { YelpData, YelpBusiness, YelpReview } from './types';
 
+export async function testConnection(apiKey: string, businessId: string): Promise<void> {
+  const response = await fetch(`https://api.yelp.com/v3/businesses/${businessId}`, {
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+  });
+  if (!response.ok) throw new Error(`Yelp auth failed: ${response.status}`);
+}
+
 /**
  * Fetch data from Yelp Fusion API.
  * Returns business rating, review count, and recent reviews.

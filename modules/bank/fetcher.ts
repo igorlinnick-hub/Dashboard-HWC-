@@ -28,6 +28,11 @@ function getPlaidClient(): PlaidApi {
   return new PlaidApi(config);
 }
 
+export async function testConnection(accessToken: string): Promise<void> {
+  const client = getPlaidClient();
+  await client.accountsGet({ access_token: accessToken });
+}
+
 /**
  * Create a Plaid Link token for the client-side Plaid Link flow.
  * Called from /api/plaid/link-token route.

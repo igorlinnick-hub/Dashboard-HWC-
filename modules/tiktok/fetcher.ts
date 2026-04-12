@@ -2,6 +2,17 @@ import type { TikTokData, SupermetricsRow } from './types';
 import fs from 'fs';
 import path from 'path';
 
+export async function testConnection(apiKey: string, advertiserId: string, _clientId: string): Promise<void> {
+  const url = new URL('https://api.supermetrics.com/enterprise/v2/query/data/json');
+  url.searchParams.set('ds_id', 'TIA');
+  url.searchParams.set('ds_accounts', advertiserId);
+  url.searchParams.set('metrics', 'spend');
+  url.searchParams.set('date_range_type', 'last_7_days');
+  url.searchParams.set('api_key', apiKey);
+  const response = await fetch(url.toString());
+  if (!response.ok) throw new Error(`TikTok/Supermetrics auth failed: ${response.status}`);
+}
+
 /**
  * Fetch TikTok Ads data via Supermetrics JSON API.
  * Includes a simple CSV fallback if specified or if API fails.

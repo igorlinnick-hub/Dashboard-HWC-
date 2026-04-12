@@ -1,5 +1,12 @@
 import type { SquareData, SquarePayment, DailySales, PaymentMethodBreakdown, HourlyBreakdown } from './types';
 
+export async function testConnection(accessToken: string, locationId: string): Promise<void> {
+  const response = await fetch(`https://connect.squareup.com/v2/locations/${locationId}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}`, 'Square-Version': '2025-02-13' },
+  });
+  if (!response.ok) throw new Error(`Square auth failed: ${response.status}`);
+}
+
 /**
  * Fetch real payment data from Square API.
  * Handles pagination and aggregates data for the dashboard.
