@@ -17,6 +17,7 @@ export function ConnectModal({ connector, clientId, onClose, onSuccess }: Connec
   if (connector.authType === 'plaid') {
     return (
       <ModalShell title={`Connect ${connector.name}`} onClose={onClose}>
+        <SetupGuide connector={connector} />
         <PlaidLinkFlow clientId={clientId} onClose={onClose} onSuccess={onSuccess} />
       </ModalShell>
     );
@@ -25,8 +26,48 @@ export function ConnectModal({ connector, clientId, onClose, onSuccess }: Connec
   // Standard form flow for api_key / oauth connectors
   return (
     <ModalShell title={`Connect ${connector.name}`} onClose={onClose}>
+      <SetupGuide connector={connector} />
       <CredentialForm connector={connector} clientId={clientId} onClose={onClose} onSuccess={onSuccess} />
     </ModalShell>
+  );
+}
+
+/** Onboarding steps shown above the form/flow */
+function SetupGuide({ connector }: { connector: ConnectorDefinition }) {
+  if (!connector.setupSteps || connector.setupSteps.length === 0) return null;
+
+  return (
+    <div className="mb-5 rounded-xl border border-surface-border bg-surface-subtle/40 p-4 animate-fade-in">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wider text-accent">
+          How to connect
+        </span>
+        {connector.docsUrl && (
+          <a
+            href={connector.docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium text-text-muted hover:text-accent transition-colors"
+          >
+            Open docs ↗
+          </a>
+        )}
+      </div>
+      <ol className="space-y-2">
+        {connector.setupSteps.map((step, i) => (
+          <li
+            key={i}
+            className="flex items-start gap-3 text-sm text-text-secondary animate-slide-up"
+            style={{ animationDelay: `${80 + i * 60}ms`, animationFillMode: 'backwards' }}
+          >
+            <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-accent/15 text-[11px] font-bold text-accent">
+              {i + 1}
+            </span>
+            <span className="leading-snug">{step}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -161,7 +202,7 @@ function CredentialForm({
   const [error, setError] = useState<string | null>(null);
 
   const inputClass =
-    'block w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder-text-muted transition-all duration-200';
+    'block w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder-text-muted transition-all duration-200 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -208,11 +249,30 @@ function CredentialForm({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {connector.fields.map((field) => (
-          <div key={field.key}>
-            <label className="mb-1.5 block text-sm font-medium text-text-secondary">
-              {field.label}
-            </label>
+        {connector.fields.map((field, i) => (
+          <div
+            key={field.key}
+            className="animate-slide-up"
+            style={{
+              animationDelay: `${180 + i * 70}ms`,
+              animationFillMode: 'backwards',
+            }}
+          >
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="text-sm font-medium text-text-secondary">
+                {field.label}
+              </label>
+              {field.docsUrl && (
+                <a
+                  href={field.docsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-medium text-text-muted hover:text-accent transition-colors"
+                >
+                  Where to find ↗
+                </a>
+              )}
+            </div>
             <input
               type={field.secret ? 'password' : 'text'}
               placeholder={field.placeholder}
@@ -223,6 +283,9 @@ function CredentialForm({
               className={inputClass}
               required
             />
+            {field.hint && (
+              <p className="mt-1.5 text-xs leading-snug text-text-muted">{field.hint}</p>
+            )}
           </div>
         ))}
 

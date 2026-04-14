@@ -17,6 +17,8 @@ export interface ConnectorField {
   label: string;
   placeholder: string;
   secret: boolean;
+  hint?: string;
+  docsUrl?: string;
 }
 
 /** Connector definition from registry */
@@ -26,6 +28,8 @@ export interface ConnectorDefinition {
   category: ConnectorCategory;
   authType: AuthType;
   fields: ConnectorField[];
+  setupSteps?: string[];
+  docsUrl?: string;
 }
 
 /** Client (clinic) */
