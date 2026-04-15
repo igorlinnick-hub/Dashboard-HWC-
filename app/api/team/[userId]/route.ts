@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient as createAdminClient } from '@/lib/supabase';
-import { createServerClient as createSSRClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient as createSSRClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +13,8 @@ interface RouteParams {
 export async function DELETE(_request: Request, { params }: RouteParams) {
   const { userId } = params;
 
-  // Verify caller identity via session cookie and block self-removal
+  // Verify caller identity via session cookie and block self-removal.
+  // Route handlers can read cookies but not write, so setAll is a no-op.
   const cookieStore = cookies();
   const ssr = createSSRClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,10 +24,8 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+        setAll() {
+          // Intentionally empty — middleware already refreshed the session.
         },
       },
     }
