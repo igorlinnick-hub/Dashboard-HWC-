@@ -13,6 +13,7 @@ import {
   Star,
   Music,
   BarChart3,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 import { ClientSwitcher, useSelectedClient } from './ClientSwitcher';
@@ -75,6 +76,10 @@ export function Sidebar() {
           <Link href="/settings/connections" className={linkClass('/settings/connections')}>
             <Settings className={`h-4 w-4 ${iconClass('/settings/connections')}`} />
             Settings
+          </Link>
+          <Link href="/team" className={linkClass('/team')}>
+            <Users className={`h-4 w-4 ${iconClass('/team')}`} />
+            Team
           </Link>
         </div>
 
