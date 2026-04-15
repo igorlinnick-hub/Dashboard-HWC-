@@ -9,10 +9,6 @@ export const dynamic = 'force-dynamic';
  * Returns: { linkToken: string }
  */
 export async function POST(request: Request) {
-  console.log('[plaid/link-token] PLAID_CLIENT_ID set:', !!process.env.PLAID_CLIENT_ID);
-  console.log('[plaid/link-token] PLAID_SECRET set:', !!process.env.PLAID_SECRET);
-  console.log('[plaid/link-token] PLAID_ENV:', process.env.PLAID_ENV ?? 'not set (defaults to sandbox)');
-
   try {
     const { clientId } = await request.json();
 
@@ -27,11 +23,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ status: 'ok', linkToken });
   } catch (err) {
-    const plaidError = (err as any)?.response?.data;
-    const message = plaidError
-      ? `Plaid error: ${plaidError.error_code} — ${plaidError.error_message}`
-      : err instanceof Error ? err.message : 'Failed to create link token';
-    console.error('[plaid/link-token] error:', JSON.stringify(plaidError ?? { message }));
+    const plaidError = (err as { response?: { data?: { error_code?: string; error_message?: string } } })?.response?.data;
+    const message = plaidError?.error_code
+      ? `Plaid error: ${plaidError.error_code}`
+      : 'Failed to create link token';
+    console.error('[plaid/link-token]', plaidError?.error_code ?? 'unknown');
     return NextResponse.json(
       { status: 'error', error: message },
       { status: 500 }

@@ -104,17 +104,8 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="my-5 flex items-center gap-3">
-              <div className="h-px flex-1 bg-surface-border" />
-              <span className="text-xs text-text-muted">or</span>
-              <div className="h-px flex-1 bg-surface-border" />
-            </div>
-
-            <p className="text-center text-sm text-text-muted">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="font-medium text-accent hover:text-accent-hover transition-colors">
-                Sign up
-              </Link>
+            <p className="mt-5 text-center text-xs text-text-muted/70 leading-relaxed">
+              This dashboard is invite-only. Team access is provisioned by the agency admin.
             </p>
           </div>
         </div>

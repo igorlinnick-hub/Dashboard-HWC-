@@ -54,6 +54,14 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith('/forgot-password') &&
     !pathname.startsWith('/reset-password')
   ) {
+    // API routes: return JSON 401 so fetch/SWR gets a proper status.
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { status: 'error', error: 'Unauthorized', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     const response = NextResponse.redirect(url);

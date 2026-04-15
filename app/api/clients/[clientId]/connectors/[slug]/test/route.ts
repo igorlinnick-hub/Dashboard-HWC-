@@ -65,10 +65,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ status: 'ok', message: 'Connection successful' });
   } catch (err) {
-    console.error(`[test-connection:${slug}]`, err);
-    return NextResponse.json({ 
-      status: 'error', 
-      error: err instanceof Error ? err.message : 'Connection test failed' 
-    }, { status: 502 });
+    const message = err instanceof Error ? err.message : 'Connection test failed';
+    console.error(`[test-connection:${slug}]`, message);
+    return NextResponse.json({ status: 'error', error: message }, { status: 502 });
   }
 }
