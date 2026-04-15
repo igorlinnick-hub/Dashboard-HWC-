@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
   // IMPORTANT: When redirecting, we MUST copy the cookies from supabaseResponse
   // otherwise the session update is lost and we hit an infinite loop.
 
-  if (user && (pathname.startsWith('/login') || pathname.startsWith('/signup'))) {
+  if (user && (pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot-password'))) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     const response = NextResponse.redirect(url);
@@ -47,7 +47,13 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  if (!user && !pathname.startsWith('/login') && !pathname.startsWith('/signup')) {
+  if (
+    !user &&
+    !pathname.startsWith('/login') &&
+    !pathname.startsWith('/signup') &&
+    !pathname.startsWith('/forgot-password') &&
+    !pathname.startsWith('/reset-password')
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     const response = NextResponse.redirect(url);
