@@ -74,8 +74,17 @@ function SetupGuide({ connector }: { connector: ConnectorDefinition }) {
 /** Shared modal chrome */
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-surface-border bg-surface-card shadow-2xl animate-slide-up">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      onMouseDown={(e) => {
+        // Close only when clicking the backdrop itself, not the modal content
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-surface-border bg-surface-card shadow-2xl animate-slide-up"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div className="h-0.5 bg-gradient-to-r from-accent via-accent-hover to-accent" />
         <div className="p-6">
           <div className="mb-5 flex items-center justify-between">
@@ -197,6 +206,14 @@ function CredentialForm({
 }) {
   const storageKey = `connect_draft_${clientId}_${connector.slug}`;
 
+  // Track whether form was restored from a draft (skip entry animations)
+  const [restoredFromDraft] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try { return !!sessionStorage.getItem(storageKey); } catch {}
+    }
+    return false;
+  });
+
   const [values, setValues] = useState<Record<string, string>>(() => {
     // Restore draft from sessionStorage if user navigated away mid-form
     if (typeof window !== 'undefined') {
@@ -276,8 +293,8 @@ function CredentialForm({
         {connector.fields.map((field, i) => (
           <div
             key={field.key}
-            className="animate-slide-up"
-            style={{
+            className={restoredFromDraft ? '' : 'animate-slide-up'}
+            style={restoredFromDraft ? undefined : {
               animationDelay: `${180 + i * 70}ms`,
               animationFillMode: 'backwards',
             }}
