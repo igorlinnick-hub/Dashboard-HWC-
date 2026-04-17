@@ -195,11 +195,33 @@ function CredentialForm({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(connector.fields.map((f) => [f.key, '']))
-  );
+  const storageKey = `connect_draft_${clientId}_${connector.slug}`;
+
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    // Restore draft from sessionStorage if user navigated away mid-form
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = sessionStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Merge saved values with field defaults so new fields aren't missing
+          return Object.fromEntries(
+            connector.fields.map((f) => [f.key, parsed[f.key] || ''])
+          );
+        }
+      } catch { /* ignore corrupt data */ }
+    }
+    return Object.fromEntries(connector.fields.map((f) => [f.key, '']));
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Persist draft to sessionStorage on every change
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify(values));
+    } catch { /* storage full — ignore */ }
+  }, [values, storageKey]);
 
   const inputClass =
     'block w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder-text-muted transition-all duration-200 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30';
@@ -239,6 +261,8 @@ function CredentialForm({
     }
 
     setLoading(false);
+    // Clear draft — credentials saved successfully
+    try { sessionStorage.removeItem(storageKey); } catch {}
     onSuccess();
   }
 
