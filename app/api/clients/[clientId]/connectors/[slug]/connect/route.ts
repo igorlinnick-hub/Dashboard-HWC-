@@ -78,10 +78,11 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     );
   }
 
+  // Soft-delete: keep credentials so user can reconnect without re-entering keys
   const supabase = createServerClient();
   const { error: dbError } = await supabase
     .from('connector_credentials')
-    .delete()
+    .update({ is_connected: false })
     .eq('client_id', clientId)
     .eq('connector_slug', slug);
 
@@ -93,4 +94,52 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   }
 
   return NextResponse.json({ success: true });
+}
+
+/** PATCH — reconnect using existing saved credentials */
+export async function PATCH(_request: Request, { params }: RouteParams) {
+  const { clientId, slug } = params;
+
+  const connector = getConnector(slug);
+  if (!connector) {
+    return NextResponse.json(
+      { status: 'error', error: `Unknown connector: ${slug}`, code: 'UNKNOWN_CONNECTOR' },
+      { status: 400 }
+    );
+  }
+
+  const supabase = createServerClient();
+
+  // Check that credentials exist
+  const { data: existing } = await supabase
+    .from('connector_credentials')
+    .select('id')
+    .eq('client_id', clientId)
+    .eq('connector_slug', slug)
+    .maybeSingle();
+
+  if (!existing) {
+    return NextResponse.json(
+      { status: 'error', error: 'No saved credentials found', code: 'NO_CREDENTIALS' },
+      { status: 404 }
+    );
+  }
+
+  const { error: dbError } = await supabase
+    .from('connector_credentials')
+    .update({ is_connected: true, connected_at: new Date().toISOString() })
+    .eq('client_id', clientId)
+    .eq('connector_slug', slug);
+
+  if (dbError) {
+    return NextResponse.json(
+      { status: 'error', error: dbError.message, code: 'DB_ERROR' },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({
+    status: 'ok',
+    data: { clientId, slug, connected: true, reconnected: true },
+  });
 }

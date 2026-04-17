@@ -11,11 +11,13 @@ interface ConnectorCardProps {
   slug?: string;
   status: ConnectorStatus;
   lastSync: string | null;
+  hasSavedCredentials?: boolean;
   onConnect?: () => void;
+  onReconnect?: () => void;
   onDisconnect?: () => void;
 }
 
-export function ConnectorCard({ name, slug, status, lastSync, onConnect, onDisconnect }: ConnectorCardProps) {
+export function ConnectorCard({ name, slug, status, lastSync, hasSavedCredentials, onConnect, onReconnect, onDisconnect }: ConnectorCardProps) {
   const Icon = slug ? getConnectorIcon(slug) : null;
 
   return (
@@ -40,7 +42,12 @@ export function ConnectorCard({ name, slug, status, lastSync, onConnect, onDisco
         </div>
         <div className="flex items-center gap-2">
           <Badge status={status} />
-          {status === 'disconnected' && onConnect && (
+          {status === 'disconnected' && hasSavedCredentials && onReconnect && (
+            <Button variant="outline" size="sm" onClick={onReconnect}>
+              Reconnect
+            </Button>
+          )}
+          {status === 'disconnected' && !hasSavedCredentials && onConnect && (
             <Button variant="outline" size="sm" onClick={onConnect}>
               Connect
             </Button>

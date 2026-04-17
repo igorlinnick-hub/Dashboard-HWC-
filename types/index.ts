@@ -56,6 +56,7 @@ export interface ClientConnector {
   definition: ConnectorDefinition;
   isConnected: boolean;
   connectedAt: string | null;
+  hasSavedCredentials: boolean;
 }
 
 /** Base metric shape */

@@ -1,18 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/fetcher';
 import { useSelectedClient } from '@/components/layout/ClientSwitcher';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { ConnectorCard } from '@/components/connectors/ConnectorCard';
 import { ConnectModal } from '@/components/connectors/ConnectModal';
+import { useToast } from '@/hooks/use-toast';
 import { CONNECTORS } from '@/lib/connectors/registry';
 import type { ClientConnector, ConnectorDefinition } from '@/types';
 
 export default function ConnectionSettingsPage() {
   const { clientId } = useSelectedClient();
   const [connectingDef, setConnectingDef] = useState<ConnectorDefinition | null>(null);
+  const { toast } = useToast();
 
   const { data, isLoading, mutate } = useSWR<{ data: ClientConnector[] }>(
     clientId ? `/api/clients/${clientId}/connectors` : null,
@@ -20,6 +22,20 @@ export default function ConnectionSettingsPage() {
   );
 
   const connectors = data?.data ?? [];
+
+  const handleReconnect = useCallback(async (def: ConnectorDefinition) => {
+    if (!clientId) return;
+    const res = await fetch(
+      `/api/clients/${clientId}/connectors/${def.slug}/connect`,
+      { method: 'PATCH' }
+    );
+    if (res.ok) {
+      toast(`${def.name} reconnected`, 'success');
+    } else {
+      toast(`Failed to reconnect ${def.name}`, 'error');
+    }
+    mutate();
+  }, [clientId, mutate, toast]);
 
   // Build a lookup of connected status from API
   const statusMap = new Map(
@@ -58,7 +74,9 @@ export default function ConnectionSettingsPage() {
                         name={def.name}
                         status={isConnected ? 'connected' : 'disconnected'}
                         lastSync={info?.connectedAt ?? null}
+                        hasSavedCredentials={info?.hasSavedCredentials ?? false}
                         onConnect={() => setConnectingDef(def)}
+                        onReconnect={() => handleReconnect(def)}
                       />
                     );
                   })}

@@ -22,7 +22,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
   const credsMap = new Map(
     (creds ?? []).map((c: { connector_slug: string; is_connected: boolean; connected_at: string | null }) => [
       c.connector_slug,
-      { isConnected: c.is_connected, connectedAt: c.connected_at },
+      { isConnected: c.is_connected, connectedAt: c.connected_at, hasSavedCredentials: true },
     ])
   );
 
@@ -32,6 +32,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       definition: def,
       isConnected: saved?.isConnected ?? false,
       connectedAt: saved?.connectedAt ?? null,
+      hasSavedCredentials: saved?.hasSavedCredentials ?? false,
     };
   });
 

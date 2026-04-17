@@ -48,6 +48,21 @@ export default function ClientOverviewPage() {
     return acc;
   }, {});
 
+  const handleReconnect = useCallback(async (def: ConnectorDefinition) => {
+    // Reconnect using saved credentials — no need to re-enter keys
+    const res = await fetch(
+      `/api/clients/${clientId}/connectors/${def.slug}/connect`,
+      { method: 'PATCH' }
+    );
+
+    if (res.ok) {
+      toast(`${def.name} reconnected`, 'success');
+    } else {
+      toast(`Failed to reconnect ${def.name}`, 'error');
+    }
+    mutate();
+  }, [clientId, mutate, toast]);
+
   const handleDisconnect = useCallback(async (def: ConnectorDefinition) => {
     // Optimistic update
     mutate(
@@ -131,7 +146,9 @@ export default function ClientOverviewPage() {
                       slug={c.definition.slug}
                       status={c.isConnected ? 'connected' : 'disconnected'}
                       lastSync={c.connectedAt ? new Date(c.connectedAt).toLocaleDateString() : null}
+                      hasSavedCredentials={c.hasSavedCredentials}
                       onConnect={() => setConnectingDef(c.definition)}
+                      onReconnect={() => handleReconnect(c.definition)}
                       onDisconnect={() => setConfirmDisconnect(c.definition)}
                     />
                     {c.isConnected && (
