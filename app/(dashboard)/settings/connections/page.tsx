@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/fetcher';
 import { useSelectedClient } from '@/components/layout/ClientSwitcher';
@@ -13,8 +13,28 @@ import type { ClientConnector, ConnectorDefinition } from '@/types';
 
 export default function ConnectionSettingsPage() {
   const { clientId } = useSelectedClient();
-  const [connectingDef, setConnectingDef] = useState<ConnectorDefinition | null>(null);
+  const modalStorageKey = `connecting_slug_${clientId}`;
+
+  const [connectingDef, setConnectingDef] = useState<ConnectorDefinition | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const slug = sessionStorage.getItem(modalStorageKey);
+        if (slug) return CONNECTORS.find((c) => c.slug === slug) ?? null;
+      } catch {}
+    }
+    return null;
+  });
   const { toast } = useToast();
+
+  useEffect(() => {
+    try {
+      if (connectingDef) {
+        sessionStorage.setItem(modalStorageKey, connectingDef.slug);
+      } else {
+        sessionStorage.removeItem(modalStorageKey);
+      }
+    } catch {}
+  }, [connectingDef, modalStorageKey]);
 
   const { data, isLoading, mutate } = useSWR<{ data: ClientConnector[] }>(
     clientId ? `/api/clients/${clientId}/connectors` : null,

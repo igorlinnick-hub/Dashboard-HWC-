@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ConnectModal } from '@/components/connectors/ConnectModal';
 import { ConnectorCard } from '@/components/connectors/ConnectorCard';
 import { MetricCard } from '@/components/charts/MetricCard';
+import { CONNECTORS } from '@/lib/connectors/registry';
 import type { ClientConnector, ConnectorDefinition, ConnectorCategory } from '@/types';
 
 const categoryLabels: Record<ConnectorCategory, string> = {
@@ -28,9 +29,31 @@ const categoryLabels: Record<ConnectorCategory, string> = {
 export default function ClientOverviewPage() {
   const params = useParams<{ clientId: string }>();
   const clientId = params.clientId;
-  const [connectingDef, setConnectingDef] = useState<ConnectorDefinition | null>(null);
+  const modalStorageKey = `connecting_slug_${clientId}`;
+
+  const [connectingDef, setConnectingDef] = useState<ConnectorDefinition | null>(() => {
+    // Restore open modal if user navigated away mid-connection
+    if (typeof window !== 'undefined') {
+      try {
+        const slug = sessionStorage.getItem(modalStorageKey);
+        if (slug) return CONNECTORS.find((c) => c.slug === slug) ?? null;
+      } catch {}
+    }
+    return null;
+  });
   const [confirmDisconnect, setConfirmDisconnect] = useState<ConnectorDefinition | null>(null);
   const { toast } = useToast();
+
+  // Persist which connector modal is open
+  useEffect(() => {
+    try {
+      if (connectingDef) {
+        sessionStorage.setItem(modalStorageKey, connectingDef.slug);
+      } else {
+        sessionStorage.removeItem(modalStorageKey);
+      }
+    } catch {}
+  }, [connectingDef, modalStorageKey]);
 
   const { data, isLoading, mutate } = useSWR<{ data: ClientConnector[] }>(
     `/api/clients/${clientId}/connectors`,

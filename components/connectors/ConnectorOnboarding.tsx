@@ -138,7 +138,27 @@ interface ConnectorOnboardingProps {
 }
 
 export function ConnectorOnboarding({ connector, clientId, onConnected }: ConnectorOnboardingProps) {
-  const [showModal, setShowModal] = useState(false);
+  const modalStorageKey = `connecting_slug_${clientId}`;
+
+  const [showModal, setShowModal] = useState(() => {
+    // Auto-open if user was mid-connection and navigated away
+    if (typeof window !== 'undefined') {
+      try {
+        return sessionStorage.getItem(modalStorageKey) === connector.slug;
+      } catch {}
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    try {
+      if (showModal) {
+        sessionStorage.setItem(modalStorageKey, connector.slug);
+      } else {
+        sessionStorage.removeItem(modalStorageKey);
+      }
+    } catch {}
+  }, [showModal, modalStorageKey, connector.slug]);
   const [animating, setAnimating] = useState(false);
   const config = CONFIG[connector.slug] ?? {
     description: `Connect ${connector.name} to see your data in real time.`,
