@@ -6,7 +6,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Wellness BI — Agency Dashboard',
+  title: 'HelloMetrics — Agency Dashboard',
   description: 'Business intelligence reporting dashboard',
 };
 

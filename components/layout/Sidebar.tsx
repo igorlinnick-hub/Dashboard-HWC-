@@ -55,7 +55,7 @@ export function Sidebar() {
             <LayoutDashboard className="h-4 w-4 text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold text-text-primary">Wellness BI</p>
+            <p className="text-sm font-bold text-text-primary">HelloMetrics</p>
             <p className="text-xs text-text-muted">Agency Dashboard</p>
           </div>
         </div>

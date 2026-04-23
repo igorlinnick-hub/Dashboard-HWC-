@@ -41,7 +41,7 @@ export async function createLinkToken(clientUserId: string): Promise<string> {
   const client = getPlaidClient();
   const response = await client.linkTokenCreate({
     user: { client_user_id: clientUserId },
-    client_name: 'Wellness BI Dashboard',
+    client_name: 'HelloMetrics Dashboard',
     products: [Products.Transactions],
     country_codes: [CountryCode.Us],
     language: 'en',

@@ -177,7 +177,7 @@ export default function ResetPasswordPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-text-muted/50">
-          Wellness BI &middot; Agency Dashboard
+          HelloMetrics &middot; Agency Dashboard
         </p>
       </div>
     </div>
