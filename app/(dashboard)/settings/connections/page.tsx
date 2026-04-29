@@ -49,11 +49,24 @@ export default function ConnectionSettingsPage() {
       `/api/clients/${clientId}/connectors/${def.slug}/connect`,
       { method: 'PATCH' }
     );
+    const json = await res.json().catch(() => ({}));
+
     if (res.ok) {
       toast(`${def.name} reconnected`, 'success');
-    } else {
-      toast(`Failed to reconnect ${def.name}`, 'error');
+      mutate();
+      return;
     }
+
+    // Saved creds rejected by the upstream API — open the Connect form so
+    // the admin can paste a fresh value without having to disconnect first.
+    if (json?.code === 'INVALID_KEY') {
+      toast(`${def.name} credentials need updating`, 'error');
+      setConnectingDef(def);
+      mutate();
+      return;
+    }
+
+    toast(json?.error || `Failed to reconnect ${def.name}`, 'error');
     mutate();
   }, [clientId, mutate, toast]);
 

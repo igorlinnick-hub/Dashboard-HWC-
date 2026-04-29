@@ -72,17 +72,29 @@ export default function ClientOverviewPage() {
   }, {});
 
   const handleReconnect = useCallback(async (def: ConnectorDefinition) => {
-    // Reconnect using saved credentials — no need to re-enter keys
+    // Try saved credentials first; if they're rejected by the upstream API
+    // (revoked token, lost permissions) open the Connect form so the user
+    // can paste a fresh value without first having to disconnect.
     const res = await fetch(
       `/api/clients/${clientId}/connectors/${def.slug}/connect`,
       { method: 'PATCH' }
     );
+    const json = await res.json().catch(() => ({}));
 
     if (res.ok) {
       toast(`${def.name} reconnected`, 'success');
-    } else {
-      toast(`Failed to reconnect ${def.name}`, 'error');
+      mutate();
+      return;
     }
+
+    if (json?.code === 'INVALID_KEY') {
+      toast(`${def.name} credentials need updating`, 'error');
+      setConnectingDef(def);
+      mutate();
+      return;
+    }
+
+    toast(json?.error || `Failed to reconnect ${def.name}`, 'error');
     mutate();
   }, [clientId, mutate, toast]);
 
