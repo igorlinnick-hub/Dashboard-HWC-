@@ -1,11 +1,40 @@
 # Handoff — Wellness BI Agency Dashboard
 
 > PROJECT COMPLETE — v1.0 shipped 2026-04-08. Demo Mode wired end-to-end 2026-04-11.
+> Layer 0+1 refactor (registry/orchestrator/adapters) shipped on `feature/registry-orchestrator` 2026-04-29.
+
+## Layer 0+1 refactor — `feature/registry-orchestrator` branch
+
+Goal: stabilize architectural boundaries before connecting real credentials and rewriting Meta/TikTok off Supermetrics. Plan: `.claude/plans/flickering-gliding-snail.md`. Architecture: `ARCHITECTURE.md`.
+
+What changed:
+- `data/route.ts`: 350 → 42 lines. All connector branching gone — route only parses params and delegates to orchestrator.
+- New `lib/connectors/orchestrator.ts` (server-only): single dispatch — validate slug → load creds → mock-or-cache → adapter call → cache-set → error-normalize.
+- New `lib/connectors/adapters.ts` (server-only): slug → ConnectorAdapter map.
+- New `lib/connectors/transformers.ts`: slug → transformer map (used in mock-mode).
+- New `modules/<7>/adapter.ts` × 7: pure functions `(creds, period) → ConnectorResponse | error`. Each ~20 lines. **Zero imports of `@/lib/supabase`, `@/lib/cache`, `next/server`.**
+- New `modules/<7>/errors.ts` × 7: SDK-error-to-ConnectorErrorCode classifiers.
+- `types/index.ts`: + AdapterInput/Output, ConnectorAdapter, OrchestratorInput/Output, ConnectorCredentialsRow.
+- `lib/connectors/registry.ts`: untouched (kept client-safe — UI metadata only).
+- `package.json`: + `server-only` dependency (marker, prevents adapters bundling into client).
+
+Verified locally:
+- `npx tsc --noEmit` → 0 errors.
+- `npm run build` → success.
+- Adapter isolation lint: 0 violations across all 14 module files.
+
+Pending verification (blocked on Supabase env vars from agency owner):
+- Behavioural parity test on Demo Mode (each of 7 connectors must return identical JSON before/after).
+- Cache round-trip with a real test key (Stripe sk_test_ already shared).
+
+Behaviour change to flag (sole intentional regression):
+- If a `connector_credentials` row has `is_connected=true` but the required field is empty (e.g. api_key blank), the old route silently returned a "transformed mock" answer. The new adapters return `NOT_CONNECTED` instead so the UI can prompt a reconnect. Edge case — only triggers on a half-saved row.
 
 ## Known Bugs (next session)
 
-- **Square credentials path bug**: `data/route.ts` reads `creds.access_token` and `creds.location_id` at top level (~line 143), but `connect/route.ts:49` stores them inside `extra_config`. Change to `creds.extra_config.access_token` / `creds.extra_config.location_id`. This is why "Connection Timeout" appears for Square.
-- **TikTok still uses Supermetrics**: After Meta switched to Graph API direct, TikTok is the only Supermetrics-dependent connector left. Reconnect UX now surfaces the API error (commit ea267f3), but the underlying TikTok fetcher should be rewritten on TikTok Ads API.
+- **Square credentials path bug** (was open): `data/route.ts` previously read `creds.access_token` / `creds.location_id` at top level vs `connect/route.ts` storing them in `extra_config`. **Fixed on this branch** — `square/adapter.ts` reads from `extra_config` directly.
+- **Error message granularity** (was open): "Connection Timeout" banner fired for any API throw. Backend fixed on this branch (per-connector `errors.ts` classifiers return specific `INVALID_KEY` / `RATE_LIMIT` / `CONNECTION_TIMEOUT` / `UNKNOWN` codes). UI mapping landed on main (commit ea267f3 — error → reconnect onboarding banner).
+- **TikTok still uses Supermetrics**: only Supermetrics-dependent connector left after Meta moved to Graph API. Reconnect UX surfaces the API error (commit ea267f3), but the underlying TikTok fetcher should be rewritten on TikTok Ads API.
 - **Default Supabase SMTP**: project still uses Supabase's built-in mailer (4 emails/hour limit, unreliable Gmail delivery). Switch to a custom SMTP (Resend / SendGrid / Postmark) in Supabase Dashboard → Authentication → Emails → SMTP Settings before scaling invites.
 
 ---
