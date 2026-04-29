@@ -221,7 +221,20 @@ export async function GET(request: Request, { params }: RouteParams) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Meta API error';
       let code: string = 'UNKNOWN';
-      if (message.includes('401') || message.includes('unauthorized')) code = 'INVALID_KEY';
+      // Auth, expired token, missing permission — all treated as INVALID_KEY so
+      // the UI offers a reconnect path instead of a dead-end error screen.
+      if (
+        message.includes('401') ||
+        message.includes('unauthorized') ||
+        message.includes('(#200)') ||
+        message.includes('(#10)') ||
+        message.includes('(#190)') ||
+        message.toLowerCase().includes('permission') ||
+        message.toLowerCase().includes('not grant') ||
+        message.toLowerCase().includes('expired')
+      ) {
+        code = 'INVALID_KEY';
+      }
       if (message.includes('timeout')) code = 'CONNECTION_TIMEOUT';
       if (message.includes('429')) code = 'RATE_LIMIT';
 
@@ -231,7 +244,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
   }
-  
+
   // --- TIKTOK: real implementation when key exists ---
   const tiktokAdvertiserId = creds?.extra_config?.advertiser_id;
   if (slug === 'tiktok' && creds?.api_key && tiktokAdvertiserId) {
