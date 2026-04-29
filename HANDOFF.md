@@ -7,6 +7,7 @@
 - **Square credentials path bug**: `data/route.ts` reads `creds.access_token` and `creds.location_id` at top level (~line 143), but `connect/route.ts:49` stores them inside `extra_config`. Change to `creds.extra_config.access_token` / `creds.extra_config.location_id`. This is why "Connection Timeout" appears for Square.
 - **Error message granularity**: The "Connection Timeout" banner in `app/(dashboard)/clients/[clientId]/[connectorSlug]/page.tsx` (~line 82) fires for any API throw. Should distinguish "no creds" from "API unreachable".
 - **TikTok still uses Supermetrics**: After Meta switched to Graph API direct, TikTok is the only Supermetrics-dependent connector left. Same UX bug will appear there until rewritten on TikTok Ads API.
+- **Default Supabase SMTP**: project still uses Supabase's built-in mailer (4 emails/hour limit, unreliable Gmail delivery). Switch to a custom SMTP (Resend / SendGrid / Postmark) in Supabase Dashboard → Authentication → Emails → SMTP Settings before scaling invites.
 
 ---
 
@@ -40,6 +41,7 @@
 | — | Demo Mode (toggle mock data for any connector) | DONE |
 | — | Connection Test API (`POST /test` — lightweight validation per connector) | DONE |
 | — | Real-time connection testing in ConnectModal | DONE |
+| — | Team invite re-send (handles `email_exists` → falls back to recovery for unconfirmed users) | DONE |
 
 ## What Works End-to-End
 

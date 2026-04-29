@@ -44,7 +44,12 @@ export default function TeamPage() {
       if (json.status === 'error') {
         toast(json.error || 'Failed to send invite', 'error');
       } else {
-        toast(`Invite sent to ${email}`, 'success');
+        const action = json.data?.action;
+        const msg =
+          action === 'reinvited'
+            ? `Invite resent to ${email}`
+            : `Invite sent to ${email}`;
+        toast(msg, 'success');
         setEmail('');
         mutate();
       }

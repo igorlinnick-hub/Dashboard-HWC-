@@ -1,11 +1,22 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { ToastProvider } from '@/hooks/use-toast';
 import { SidebarProvider, useSidebar } from '@/hooks/use-sidebar';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { isOpen, setIsOpen } = useSidebar();
+
+  // Forward to /reset-password if Supabase pushed a recovery/invite token
+  // into the dashboard (happens when an already-signed-in user clicks the
+  // link or when Site URL falls back to root).
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery') || hash.includes('type=invite')) {
+      window.location.replace('/reset-password' + hash);
+    }
+  }, []);
 
   return (
     <div className="flex h-screen bg-surface overflow-hidden">
