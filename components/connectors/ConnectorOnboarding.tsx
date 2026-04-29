@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Check } from 'lucide-react';
+import { Check, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ConnectModal } from '@/components/connectors/ConnectModal';
 import { useCountUp } from '@/hooks/use-count-up';
@@ -135,9 +135,11 @@ interface ConnectorOnboardingProps {
   connector: ConnectorDefinition;
   clientId: string;
   onConnected: () => void;
+  /** Optional error to surface above the connect form when reaching this screen due to a failed API call */
+  errorMessage?: string;
 }
 
-export function ConnectorOnboarding({ connector, clientId, onConnected }: ConnectorOnboardingProps) {
+export function ConnectorOnboarding({ connector, clientId, onConnected, errorMessage }: ConnectorOnboardingProps) {
   const modalStorageKey = `connecting_slug_${clientId}`;
 
   const [showModal, setShowModal] = useState(() => {
@@ -180,6 +182,17 @@ export function ConnectorOnboarding({ connector, clientId, onConnected }: Connec
     <>
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-2xl space-y-8 opacity-0 animate-fade-in" style={{ animationFillMode: 'forwards' }}>
+
+          {errorMessage && (
+            <div className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="space-y-1">
+                <p className="font-medium">Previous connection rejected by {connector.name}</p>
+                <p className="text-red-300/80 leading-snug break-words">{errorMessage}</p>
+                <p className="pt-1 text-red-300/60">Generate a fresh token with the correct permissions and reconnect below.</p>
+              </div>
+            </div>
+          )}
 
           {/* Header */}
           <div className="text-center space-y-3">
@@ -225,7 +238,7 @@ export function ConnectorOnboarding({ connector, clientId, onConnected }: Connec
               onClick={() => setShowModal(true)}
               className="glow-orange-sm px-8 py-3 text-base font-semibold"
             >
-              Connect {connector.name}
+              {errorMessage ? `Reconnect ${connector.name}` : `Connect ${connector.name}`}
             </Button>
           </div>
         </div>

@@ -92,13 +92,19 @@ export default function ConnectorDetailPage() {
     );
   }
 
-  // API returned error with credentials issue — show onboarding so user can reconnect
+  // API returned error — anything that isn't transient gets routed to onboarding
+  // so the user always has a path to reconnect with fresh credentials.
   if (response?.status === 'error') {
-    const isCredentialError = response.code === 'INVALID_KEY' || response.code === 'NOT_CONNECTED';
-    if (isCredentialError) {
+    const isTransient = response.code === 'RATE_LIMIT' || response.code === 'CONNECTION_TIMEOUT';
+    if (!isTransient) {
       return (
         <PageWrapper title={connector.name}>
-          <ConnectorOnboarding connector={connector} clientId={clientId} onConnected={() => mutate()} />
+          <ConnectorOnboarding
+            connector={connector}
+            clientId={clientId}
+            onConnected={() => mutate()}
+            errorMessage={response.error}
+          />
         </PageWrapper>
       );
     }
