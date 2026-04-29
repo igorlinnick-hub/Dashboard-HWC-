@@ -6,6 +6,7 @@
 
 - **Square credentials path bug**: `data/route.ts` reads `creds.access_token` and `creds.location_id` at top level (~line 143), but `connect/route.ts:49` stores them inside `extra_config`. Change to `creds.extra_config.access_token` / `creds.extra_config.location_id`. This is why "Connection Timeout" appears for Square.
 - **Error message granularity**: The "Connection Timeout" banner in `app/(dashboard)/clients/[clientId]/[connectorSlug]/page.tsx` (~line 82) fires for any API throw. Should distinguish "no creds" from "API unreachable".
+- **TikTok still uses Supermetrics**: After Meta switched to Graph API direct, TikTok is the only Supermetrics-dependent connector left. Same UX bug will appear there until rewritten on TikTok Ads API.
 
 ---
 
@@ -20,7 +21,7 @@
 | 6.1 | Google Analytics (OAuth + GA4 Data API — sessions, users, bounce rate, channels) | DONE |
 | 7.1 | Bank via Plaid Sandbox (Plaid Link + balance + transactions + categories) | DONE |
 | — | Square (Connect API — payments, refunds, daily/hourly aggregations) | DONE |
-| — | Meta Ads (Supermetrics — Spend, Impressions, CTR, CPC, Campaigns) | DONE |
+| — | Meta Ads (Graph API direct — Spend, Impressions, CTR, CPC, Campaigns) | DONE |
 | — | TikTok Ads (Supermetrics — Spend, Impressions, Conversions, Video Views) | DONE |
 | — | Yelp (Fusion API — Rating, Reviews, Recent Reviews) | DONE |
 | — | Dark UI redesign (orange accent, CSS animations, no framer-motion) | DONE |
