@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { runConnector } from '@/lib/connectors/orchestrator';
 
 export const dynamic = 'force-dynamic';
+// `dynamic` only opts the route handler out of static rendering. Next.js still
+// caches every fetch() inside the handler with cache:'force-cache' by default,
+// which means Supabase selects (creds, cached_data) get memoised forever and
+// out-of-band updates never become visible. force-no-store opts every fetch
+// in this handler — including Supabase JS — out of the data cache.
+export const fetchCache = 'force-no-store';
 
 interface RouteParams {
   params: { clientId: string; slug: string };
