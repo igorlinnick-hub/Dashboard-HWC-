@@ -61,6 +61,12 @@ export default function ConnectionSettingsPage() {
     // the admin can paste a fresh value without having to disconnect first.
     if (json?.code === 'INVALID_KEY') {
       toast(`${def.name} credentials need updating`, 'error');
+      // Drop any stale draft from a previous attempt so the form opens
+      // empty — otherwise the old (now-revoked) token is restored from
+      // sessionStorage and a quick submit just re-sends the same dead value.
+      try {
+        sessionStorage.removeItem(`connect_draft_${clientId}_${def.slug}`);
+      } catch { /* storage unavailable — fine, fallthrough */ }
       setConnectingDef(def);
       mutate();
       return;
