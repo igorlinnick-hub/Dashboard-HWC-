@@ -37,15 +37,31 @@ function errorOut(
 }
 
 async function loadCreds(clientId: string, slug: string): Promise<ConnectorCredentialsRow | null> {
-  const supabase = createServerClient();
-  const { data } = await supabase
-    .from('connector_credentials')
-    .select('*')
-    .eq('client_id', clientId)
-    .eq('connector_slug', slug)
-    .eq('is_connected', true)
-    .single();
-  return (data as ConnectorCredentialsRow | null) ?? null;
+  // Direct PostgREST call instead of @supabase/supabase-js so we can guarantee
+  // cache: 'no-store'. The Supabase JS client does NOT honour the
+  // global.fetch override for its internal fetches reliably under Next.js 14
+  // (observed live: PATCH-then-select returned the pre-PATCH row body for
+  // the lifetime of the warm function instance, even with fetchCache
+  // 'force-no-store' on the route and global fetch override on the client).
+  // Direct fetch sidesteps both layers of caching.
+  const url =
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/connector_credentials` +
+    `?client_id=eq.${encodeURIComponent(clientId)}` +
+    `&connector_slug=eq.${encodeURIComponent(slug)}` +
+    `&is_connected=eq.true` +
+    `&select=*`;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  const res = await fetch(url, {
+    cache: 'no-store',
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      Accept: 'application/json',
+    },
+  });
+  if (!res.ok) return null;
+  const rows = (await res.json()) as ConnectorCredentialsRow[];
+  return rows[0] ?? null;
 }
 
 function mockResponse(slug: string, clientId: string, period: { from: string; to: string }): OrchestratorOutput {
