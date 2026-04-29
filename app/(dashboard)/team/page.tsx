@@ -6,7 +6,7 @@ import { fetcher } from '@/lib/fetcher';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Trash2, UserPlus, CheckCircle2, Clock } from 'lucide-react';
+import { Mail, Trash2, UserPlus, CheckCircle2, Clock, Link2 } from 'lucide-react';
 
 interface TeamMember {
   id: string;
@@ -26,37 +26,69 @@ export default function TeamPage() {
 
   const [email, setEmail] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [resending, setResending] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
 
   const members = data?.data ?? [];
+
+  async function requestInviteLink(targetEmail: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/team/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetEmail }),
+      });
+      const json = await res.json();
+      if (json.status === 'error') {
+        toast(json.error || 'Failed to send invite', 'error');
+        return false;
+      }
+
+      const action = json.data?.action;
+      const link = json.data?.actionLink as string | undefined;
+
+      if (link) {
+        try {
+          await navigator.clipboard.writeText(link);
+          toast(
+            action === 'reinvited'
+              ? `Link copied — resend to ${targetEmail}`
+              : `Link copied — share with ${targetEmail}`,
+            'success'
+          );
+        } catch {
+          window.prompt('Copy this invite link:', link);
+          toast('Invite link generated', 'success');
+        }
+      } else {
+        toast(
+          action === 'reinvited'
+            ? `Invite resent to ${targetEmail}`
+            : `Invite sent to ${targetEmail}`,
+          'success'
+        );
+      }
+      mutate();
+      return true;
+    } catch {
+      toast('Network error', 'error');
+      return false;
+    }
+  }
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
     setInviting(true);
-    try {
-      const res = await fetch('/api/team/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const json = await res.json();
-      if (json.status === 'error') {
-        toast(json.error || 'Failed to send invite', 'error');
-      } else {
-        const action = json.data?.action;
-        const msg =
-          action === 'reinvited'
-            ? `Invite resent to ${email}`
-            : `Invite sent to ${email}`;
-        toast(msg, 'success');
-        setEmail('');
-        mutate();
-      }
-    } catch {
-      toast('Network error', 'error');
-    }
+    const ok = await requestInviteLink(email.trim());
+    if (ok) setEmail('');
     setInviting(false);
+  }
+
+  async function handleResend(member: TeamMember) {
+    setResending(member.id);
+    await requestInviteLink(member.email);
+    setResending(null);
   }
 
   async function handleRemove(member: TeamMember) {
@@ -89,8 +121,8 @@ export default function TeamPage() {
     <PageWrapper title="Team">
       <div className="max-w-3xl space-y-6">
         <p className="text-sm text-text-muted">
-          Invite teammates by email. They will receive a secure link to set their password.
-          Only invited members can sign in — public signup is disabled.
+          Invite teammates by email. A secure invite link copies to your clipboard — share
+          it via Slack, Telegram, or anywhere you prefer. Only invited members can sign in.
         </p>
 
         {/* Invite form */}
@@ -119,10 +151,10 @@ export default function TeamPage() {
               {inviting ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Sending...
+                  Generating...
                 </span>
               ) : (
-                'Send invite'
+                'Generate link'
               )}
             </Button>
           </div>
@@ -169,14 +201,27 @@ export default function TeamPage() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleRemove(m)}
-                    disabled={removing === m.id}
-                    className="flex flex-none items-center gap-1.5 rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-text-muted transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    {removing === m.id ? 'Removing...' : 'Remove'}
-                  </button>
+                  <div className="flex flex-none items-center gap-2">
+                    {!m.confirmed && (
+                      <button
+                        onClick={() => handleResend(m)}
+                        disabled={resending === m.id}
+                        title="Copy a fresh invite link to clipboard"
+                        className="flex items-center gap-1.5 rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-text-muted transition-all hover:border-accent/40 hover:bg-accent/10 hover:text-accent disabled:opacity-50"
+                      >
+                        <Link2 className="h-3.5 w-3.5" />
+                        {resending === m.id ? 'Copying...' : 'Copy link'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleRemove(m)}
+                      disabled={removing === m.id}
+                      className="flex items-center gap-1.5 rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-text-muted transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {removing === m.id ? 'Removing...' : 'Remove'}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
