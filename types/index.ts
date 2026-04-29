@@ -124,3 +124,69 @@ export interface ConnectorResponse {
   timeseries: TimeseriesPoint[];
   breakdowns: BreakdownItem[];
 }
+
+// ==========================================
+// Adapter / Orchestrator contracts (Layer 0+1 refactor)
+// ==========================================
+
+/** Raw row from connector_credentials Supabase table */
+export interface ConnectorCredentialsRow {
+  id: string;
+  client_id: string;
+  connector_slug: string;
+  api_key: string | null;
+  extra_config: Record<string, unknown> | null;
+  is_connected: boolean;
+  connected_at: string | null;
+  use_mock?: boolean;
+}
+
+/** Adapter input — pure function: creds + period in, response out */
+export interface AdapterInput {
+  creds: ConnectorCredentialsRow;
+  period: { from: string; to: string };
+}
+
+export type AdapterSuccess = { status: 'ok'; data: ConnectorResponse };
+export type AdapterError = { status: 'error'; code: ConnectorErrorCode; error: string };
+export type AdapterOutput = AdapterSuccess | AdapterError;
+
+/** Per-connector adapter — pure: knows external API, nothing about cache/db/http */
+export type ConnectorAdapter = (input: AdapterInput) => Promise<AdapterOutput>;
+
+/** Orchestrator input — full request context from HTTP route */
+export interface OrchestratorInput {
+  clientId: string;
+  slug: string;
+  period: { from: string; to: string };
+  refresh?: boolean;
+}
+
+export type OrchestratorSuccess = {
+  status: 'ok';
+  data: ConnectorResponse;
+  lastUpdated: string;
+  meta: {
+    cached?: boolean;
+    mock?: boolean;
+    notConnected?: boolean;
+    clientId?: string;
+    connector?: string;
+    period?: { from: string; to: string };
+  };
+};
+
+export type OrchestratorError = {
+  status: 'error';
+  code: ConnectorErrorCode;
+  error: string;
+  data: null;
+  lastUpdated: string;
+  meta?: {
+    clientId?: string;
+    connector?: string;
+    period?: { from: string; to: string };
+  };
+};
+
+export type OrchestratorOutput = OrchestratorSuccess | OrchestratorError;

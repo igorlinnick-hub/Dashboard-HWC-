@@ -193,3 +193,4 @@ export function getConnector(slug: string): ConnectorDefinition | undefined {
 export function getConnectorsByCategory(category: string): ConnectorDefinition[] {
   return CONNECTORS.filter((c) => c.category === category);
 }
+
