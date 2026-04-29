@@ -5,8 +5,7 @@
 ## Known Bugs (next session)
 
 - **Square credentials path bug**: `data/route.ts` reads `creds.access_token` and `creds.location_id` at top level (~line 143), but `connect/route.ts:49` stores them inside `extra_config`. Change to `creds.extra_config.access_token` / `creds.extra_config.location_id`. This is why "Connection Timeout" appears for Square.
-- **Error message granularity**: The "Connection Timeout" banner in `app/(dashboard)/clients/[clientId]/[connectorSlug]/page.tsx` (~line 82) fires for any API throw. Should distinguish "no creds" from "API unreachable".
-- **TikTok still uses Supermetrics**: After Meta switched to Graph API direct, TikTok is the only Supermetrics-dependent connector left. Same UX bug will appear there until rewritten on TikTok Ads API.
+- **TikTok still uses Supermetrics**: After Meta switched to Graph API direct, TikTok is the only Supermetrics-dependent connector left. Reconnect UX now surfaces the API error (commit ea267f3), but the underlying TikTok fetcher should be rewritten on TikTok Ads API.
 - **Default Supabase SMTP**: project still uses Supabase's built-in mailer (4 emails/hour limit, unreliable Gmail delivery). Switch to a custom SMTP (Resend / SendGrid / Postmark) in Supabase Dashboard → Authentication → Emails → SMTP Settings before scaling invites.
 
 ---
@@ -23,6 +22,7 @@
 | 7.1 | Bank via Plaid Sandbox (Plaid Link + balance + transactions + categories) | DONE |
 | — | Square (Connect API — payments, refunds, daily/hourly aggregations) | DONE |
 | — | Meta Ads (Graph API direct — Spend, Impressions, CTR, CPC, Campaigns) | DONE |
+| — | Meta error → reconnect UX (any non-transient error routes to ConnectorOnboarding with API message + Reconnect CTA) | DONE |
 | — | TikTok Ads (Supermetrics — Spend, Impressions, Conversions, Video Views) | DONE |
 | — | Yelp (Fusion API — Rating, Reviews, Recent Reviews) | DONE |
 | — | Dark UI redesign (orange accent, CSS animations, no framer-motion) | DONE |
