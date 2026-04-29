@@ -32,8 +32,24 @@ function errorOut(
   period: { from: string; to: string },
   code: ConnectorErrorCode,
   error: string,
+  extraMeta?: Record<string, unknown>,
 ): OrchestratorOutput {
-  return { status: 'error', code, error, data: null, lastUpdated: nowIso(), meta: { clientId, connector: slug, period } };
+  return {
+    status: 'error',
+    code,
+    error,
+    data: null,
+    lastUpdated: nowIso(),
+    meta: { clientId, connector: slug, period, ...(extraMeta ?? {}) },
+  };
+}
+
+/** Short safe fingerprint of a credential so a diagnostic response can prove
+ * which row PostgREST returned without leaking the full token. */
+function fingerprint(token: string | null | undefined): string {
+  if (!token) return 'null';
+  if (token.length <= 32) return `${token.slice(0, 6)}...${token.slice(-4)}`;
+  return `${token.slice(0, 20)}...${token.slice(-12)}(len=${token.length})`;
 }
 
 async function loadCreds(clientId: string, slug: string): Promise<ConnectorCredentialsRow | null> {
@@ -128,5 +144,10 @@ export async function runConnector({
   }
 
   console.error(`[connector:${slug}]`, result.code, result.error);
-  return errorOut(slug, clientId, period, result.code, result.error);
+  return errorOut(slug, clientId, period, result.code, result.error, {
+    debug: {
+      apiKeyFingerprint: fingerprint(creds.api_key),
+      connectedAt: creds.connected_at,
+    },
+  });
 }
