@@ -144,7 +144,11 @@ export async function runConnector({
   }
 
   console.error(`[connector:${slug}]`, result.code, result.error);
-  return errorOut(slug, clientId, period, result.code, result.error, {
+  // Diagnostic: prefix fingerprint into error string so we can see which token
+  // path the orchestrator handed to the adapter, regardless of how the Vercel
+  // edge or Next.js response shape transforms meta.debug.
+  const debugError = `[fp=${fingerprint(creds.api_key)} conn=${creds.connected_at ?? 'null'}] ${result.error}`;
+  return errorOut(slug, clientId, period, result.code, debugError, {
     debug: {
       apiKeyFingerprint: fingerprint(creds.api_key),
       connectedAt: creds.connected_at,
