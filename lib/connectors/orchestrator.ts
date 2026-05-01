@@ -70,7 +70,14 @@ async function loadCreds(clientId: string, slug: string): Promise<ConnectorCrede
   return rows[0] ?? null;
 }
 
-function mockResponse(slug: string, clientId: string, period: { from: string; to: string }): OrchestratorOutput {
+type MockReason = 'not_connected' | 'demo_mode';
+
+function mockResponse(
+  slug: string,
+  clientId: string,
+  period: { from: string; to: string },
+  reason: MockReason,
+): OrchestratorOutput {
   const transform = getTransformer(slug);
   const data = transform
     ? transform(mockConnectorData[slug] ?? {})
@@ -79,7 +86,14 @@ function mockResponse(slug: string, clientId: string, period: { from: string; to
     status: 'ok',
     data,
     lastUpdated: nowIso(),
-    meta: { clientId, connector: slug, mock: true, notConnected: true, period },
+    meta: {
+      clientId,
+      connector: slug,
+      period,
+      mock: true,
+      notConnected: reason === 'not_connected',
+      demoMode: reason === 'demo_mode',
+    },
   };
 }
 
@@ -102,7 +116,13 @@ export async function runConnector({
   }
 
   const creds = await loadCreds(clientId, slug);
-  if (!creds) return mockResponse(slug, clientId, period);
+  if (!creds) return mockResponse(slug, clientId, period, 'not_connected');
+
+  // Demo Mode: connected creds exist but the user toggled the row to mock.
+  // Skip cache + adapter so the response always reflects the toggle without a
+  // refresh, and so we never round-trip the real credential through any
+  // network path.
+  if (creds.use_mock === true) return mockResponse(slug, clientId, period, 'demo_mode');
 
   const cached = await readCache(slug, clientId, period, refresh ?? false);
   if (cached) {

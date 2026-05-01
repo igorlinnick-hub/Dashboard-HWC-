@@ -170,6 +170,7 @@ export type OrchestratorSuccess = {
     cached?: boolean;
     mock?: boolean;
     notConnected?: boolean;
+    demoMode?: boolean;
     clientId?: string;
     connector?: string;
     period?: { from: string; to: string };
