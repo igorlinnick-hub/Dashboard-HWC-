@@ -11,7 +11,6 @@
 // like a pipeline and stays well under the kill-criterion line budget.
 
 import 'server-only';
-import { createServerClient } from '@/lib/supabase';
 import { getCache, setCache, invalidateCache } from '@/lib/cache';
 import { getConnector } from '@/lib/connectors/registry';
 import { getConnectorAdapter } from '@/lib/connectors/adapters';
@@ -32,7 +31,6 @@ function errorOut(
   period: { from: string; to: string },
   code: ConnectorErrorCode,
   error: string,
-  extraMeta?: Record<string, unknown>,
 ): OrchestratorOutput {
   return {
     status: 'error',
@@ -40,16 +38,8 @@ function errorOut(
     error,
     data: null,
     lastUpdated: nowIso(),
-    meta: { clientId, connector: slug, period, ...(extraMeta ?? {}) },
+    meta: { clientId, connector: slug, period },
   };
-}
-
-/** Short safe fingerprint of a credential so a diagnostic response can prove
- * which row PostgREST returned without leaking the full token. */
-function fingerprint(token: string | null | undefined): string {
-  if (!token) return 'null';
-  if (token.length <= 32) return `${token.slice(0, 6)}...${token.slice(-4)}`;
-  return `${token.slice(0, 20)}...${token.slice(-12)}(len=${token.length})`;
 }
 
 async function loadCreds(clientId: string, slug: string): Promise<ConnectorCredentialsRow | null> {
@@ -80,7 +70,14 @@ async function loadCreds(clientId: string, slug: string): Promise<ConnectorCrede
   return rows[0] ?? null;
 }
 
-function mockResponse(slug: string, clientId: string, period: { from: string; to: string }): OrchestratorOutput {
+type MockReason = 'not_connected' | 'demo_mode';
+
+function mockResponse(
+  slug: string,
+  clientId: string,
+  period: { from: string; to: string },
+  reason: MockReason,
+): OrchestratorOutput {
   const transform = getTransformer(slug);
   const data = transform
     ? transform(mockConnectorData[slug] ?? {})
@@ -89,7 +86,14 @@ function mockResponse(slug: string, clientId: string, period: { from: string; to
     status: 'ok',
     data,
     lastUpdated: nowIso(),
-    meta: { clientId, connector: slug, mock: true, notConnected: true, period },
+    meta: {
+      clientId,
+      connector: slug,
+      period,
+      mock: true,
+      notConnected: reason === 'not_connected',
+      demoMode: reason === 'demo_mode',
+    },
   };
 }
 
@@ -112,7 +116,13 @@ export async function runConnector({
   }
 
   const creds = await loadCreds(clientId, slug);
-  if (!creds) return mockResponse(slug, clientId, period);
+  if (!creds) return mockResponse(slug, clientId, period, 'not_connected');
+
+  // Demo Mode: connected creds exist but the user toggled the row to mock.
+  // Skip cache + adapter so the response always reflects the toggle without a
+  // refresh, and so we never round-trip the real credential through any
+  // network path.
+  if (creds.use_mock === true) return mockResponse(slug, clientId, period, 'demo_mode');
 
   const cached = await readCache(slug, clientId, period, refresh ?? false);
   if (cached) {
@@ -144,14 +154,5 @@ export async function runConnector({
   }
 
   console.error(`[connector:${slug}]`, result.code, result.error);
-  // Diagnostic: prefix fingerprint into error string so we can see which token
-  // path the orchestrator handed to the adapter, regardless of how the Vercel
-  // edge or Next.js response shape transforms meta.debug.
-  const debugError = `[fp=${fingerprint(creds.api_key)} conn=${creds.connected_at ?? 'null'}] ${result.error}`;
-  return errorOut(slug, clientId, period, result.code, debugError, {
-    debug: {
-      apiKeyFingerprint: fingerprint(creds.api_key),
-      connectedAt: creds.connected_at,
-    },
-  });
+  return errorOut(slug, clientId, period, result.code, result.error);
 }

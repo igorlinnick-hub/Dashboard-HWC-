@@ -2,6 +2,31 @@
 
 > PROJECT COMPLETE — v1.0 shipped 2026-04-08. Demo Mode wired end-to-end 2026-04-11.
 > Layer 0+1 refactor (registry/orchestrator/adapters) shipped on `feature/registry-orchestrator` 2026-04-29.
+> Orchestrator cleanup + Demo Mode rewire on `fix/orchestrator-cleanup-demo-mode` 2026-05-02.
+
+## Orchestrator cleanup + Demo Mode rewire — `fix/orchestrator-cleanup-demo-mode` branch
+
+### A2 — debug fingerprints reverted
+The fingerprint diagnostic added in a4001a3 (#6) and 4bf9e8d (#7) was meant to prove which `connector_credentials` row PostgREST returned during a caching investigation. The underlying caching issue was resolved in 66512e2 (direct PostgREST fetch, `cache: 'no-store'`), so the diagnostic is no longer needed and was leaking truncated token prefixes into API error responses. Reverted: `fingerprint()` helper, `meta.debug.apiKeyFingerprint/connectedAt`, `[fp=… conn=…]` error string prefix, unused `createServerClient` import, `errorOut` `extraMeta` parameter.
+
+### A1 — Demo Mode toggle wired through
+The `/mock` toggle endpoint persists `connector_credentials.use_mock`, but no consumer read it. With real creds saved AND `use_mock=true`, the orchestrator still hit the live adapter and ignored the toggle — Demo Mode was a dead flag from the moment it shipped (4081b98).
+
+Now: after `loadCreds`, if `creds.use_mock === true`, short-circuit to `mockResponse(reason='demo_mode')` and skip cache + adapter entirely. Real credentials never leave Supabase on a mocked request, and toggling the switch is reflected on the next data fetch without `refresh=true`.
+
+`mockResponse` now takes a `reason` so the response distinguishes the two paths:
+- `not_connected` → `meta.notConnected: true` (UI shows ConnectorOnboarding)
+- `demo_mode` → `meta.demoMode: true` (UI shows mock dashboards as if connected)
+
+Types: `+ OrchestratorSuccess.meta.demoMode`.
+
+### A3 — smoke verification
+Vercel preview build on push (Next.js typecheck + lint + build).
+Expected per-connector behaviour for `/api/clients/<id>/connectors/<slug>/data`:
+- No row in `connector_credentials` → 200, `meta.notConnected=true, mock=true`.
+- `is_connected=true, use_mock=true` (Demo Mode) → 200, `meta.demoMode=true, mock=true`.
+- `is_connected=true, use_mock=false`, valid creds → 200, real data.
+- `is_connected=true, use_mock=false`, invalid creds → 502, code in {`INVALID_KEY`, `RATE_LIMIT`, `CONNECTION_TIMEOUT`}, no fingerprint in error string.
 
 ## Layer 0+1 refactor — `feature/registry-orchestrator` branch
 
